@@ -1,0 +1,124 @@
+/* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2025 The RVVMF Authors (Valentin Volokitin)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+static _Float16 tanhhp [88] = {
+//intervals from 0 to 0.25
+0.0f16,
+0.0f16,
+0x1p0f16,
+0x1.3ep-17f16,
+-0x1.55cp-2f16,
+0x1.dc4p-9f16,
+0x1.edp-4f16,
+0.0f16,
+
+//intervals from 0.25 to 0.375
+0x1.36p-2f16,
+-0x1.a2p-16f16,
+0x1.d1p-1f16,
+-0x1.194p-2f16,
+-0x1.608p-4f16,
+0x1.7d8p-4f16,
+-0x1.84cp4f16,
+-0x1.4p-2f16,
+
+//intervals from 0.375 to 0.5
+0x1.a58p-2f16,
+-0x1.ac8p-15f16,
+0x1.a94p-1f16,
+-0x1.5ep-2f16,
+-0x1.9b8p-4f16,
+0x1.414p-3f16,
+-0x1.a1cp2f16,
+-0x1.cp-2f16,
+
+//intervals from 0.5 to 0.75
+0x1.1cp-1f16,
+-0x1.704p-14f16,
+0x1.628p-1f16,
+-0x1.894p-2f16,
+-0x1.58p-7f16,
+0x1.1c8p-3f16,
+-0x1.8c8p-2f16,
+-0x1.4p-1f16,
+
+//intervals from 0.75 to 1
+0x1.688p-1f16,
+-0x1.9cp-13f16,
+0x1.024p-1f16,
+-0x1.6b8p-2f16,
+0x1.b6p-4f16,
+0x1.accp-5f16,
+-0x1.358p0f16,
+-0x1.cp-1f16,
+
+//intervals from 1 to 1.5
+0x1.b24p-1f16,
+0x1.248p-13f16,
+0x1.1f4p-2f16,
+-0x1.e74p-3f16,
+0x1.a64p-4f16,
+-0x1.6a8p-7f16,
+0x1.478p-5f16,
+-0x1.4p0f16,
+
+//intervals from 1.5 to 2
+0x1.e2p-1f16,
+-0x1.038p-15f16,
+0x1.d24p-4f16,
+-0x1.b6cp-4f16,
+0x1.fbcp-5f16,
+-0x1.854p-6f16,
+0x1.d44p-7f16,
+-0x1.cp0f16,
+
+//intervals from 2 to 3
+0x1.f94p-1f16,
+-0x1.a88p-13f16,
+0x1.b3cp-6f16,
+-0x1.ad8p-6f16,
+0x1.16p-6f16,
+-0x1.1p-7f16,
+0x1.8d8p-9f16,
+-0x1.4p1f16,
+
+//intervals from 3 to 4
+0x1.ffp-1f16,
+0x1.128p-13f16,
+0x1.dd4p-9f16,
+-0x1.dbcp-9f16,
+0x1.3bcp-9f16,
+-0x1.484p-10f16,
+0x1.05cp-11f16,
+-0x1.cp1f16,
+
+//intervals from 4 to 0x1.0a4p2
+0x1.ffcp-1f16,
+-0x1.664p-14f16,
+0x1.2ccp-10f16,
+-0x1.2ecp-10f16,
+0x1.65p-11f16,
+0x1.5f8p-11f16,
+0x1.12p-7f16,
+-0x1.05p2f16,
+
+//intervals from 0x1.0a4p2
+1.0f16,
+0.0f16,
+0.0f16,
+0.0f16,
+0.0f16,
+0.0f16,
+0.0f16,
+0.0f16
+};

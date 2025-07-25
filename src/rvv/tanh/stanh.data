@@ -1,0 +1,853 @@
+/* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2025 The RVVMF Authors (Valentin Volokitin)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+static float tanhsp [672] = {
+//intervals from 0 to 7.8125e-3
+0.0f,
+0.0f,
+0x1p0f,
+0x1.e4a9c2p-42f,
+-0x1.555556p-2f,
+0x1.10df92p-23f,
+0x1.1109d6p-3f,
+0.0f,
+
+//intervals from 7.8125e-3 to 8.7890625e-3
+0x1.0ffe66p-7f,
+0x1.306932p-32f,
+0x1.fff6f8p-1f,
+-0x1.0ff83p-7f,
+-0x1.44ee3ep-2f,
+0.0f,
+0.0f,
+-0x1.1p-7f,
+
+//intervals from 8.7890625e-3 to 9.765625e-3
+0x1.2ffdc4p-7f,
+0x1.beb96cp-33f,
+0x1.fff4b8p-1f,
+-0x1.2ff518p-7f,
+-0x1.3bc49cp-2f,
+0.0f,
+0.0f,
+-0x1.3p-7f,
+
+//intervals from 9.765625e-3 to 1.07421875e-2
+0x1.4ffcfcp-7f,
+0x1.211c4ap-33f,
+0x1.fff238p-1f,
+-0x1.4ff146p-7f,
+-0x1.2f366ep-2f,
+0.0f,
+0.0f,
+-0x1.5p-7f,
+
+//intervals from 1.07421875e-2 to 1.171875e-2
+0x1.6ffc0ap-7f,
+0x1.1317ap-34f,
+0x1.ffef78p-1f,
+-0x1.6feca8p-7f,
+-0x1.1e83cap-2f,
+0.0f,
+0.0f,
+-0x1.7p-7f,
+
+//intervals from 1.171875e-2 to 1.26953125e-2
+0x1.8ffaeap-7f,
+-0x1.84d18p-39f,
+0x1.ffec78p-1f,
+-0x1.8fe72ap-7f,
+-0x1.08d988p-2f,
+0.0f,
+0.0f,
+-0x1.9p-7f,
+
+//intervals from 1.26953125e-2 to 1.3671875e-2
+0x1.aff998p-7f,
+-0x1.170082p-34f,
+0x1.ffe938p-1f,
+-0x1.afe0b8p-7f,
+-0x1.daa2b2p-3f,
+0.0f,
+0.0f,
+-0x1.bp-7f,
+
+//intervals from 1.3671875e-2 to 1.46484375e-2
+0x1.cff81p-7f,
+-0x1.041678p-33f,
+0x1.ffe5b8p-1f,
+-0x1.cfd93ep-7f,
+-0x1.95e382p-3f,
+0.0f,
+0.0f,
+-0x1.dp-7f,
+
+//intervals from 1.46484375e-2 to 1.5625e-2
+0x1.eff64ep-7f,
+-0x1.6c16d6p-33f,
+0x1.ffe1fap-1f,
+-0x1.efdf32p-7f,
+-0x1.d3dc62p-2f,
+0.0f,
+0.0f,
+-0x1.fp-7f,
+
+//intervals from 1.5625e-2 to 1.7578125e-2
+0x1.0ff99ap-6f,
+0x1.073008p-31f,
+0x1.ffdbe2p-1f,
+-0x1.0fe75ep-6f,
+-0x1.608398p-2f,
+0.0f,
+0.0f,
+-0x1.1p-6f,
+
+//intervals from 1.7578125e-2 to 1.953125e-2
+0x1.2ff712p-6f,
+-0x1.355564p-36f,
+0x1.ffd2e2p-1f,
+-0x1.2fda4ep-6f,
+-0x1.3bdfc8p-2f,
+0.0f,
+0.0f,
+-0x1.3p-6f,
+
+//intervals from 1.953125e-2 to 2.1484375e-2
+0x1.4ff3f2p-6f,
+-0x1.ec4e8p-32f,
+0x1.ffc8e4p-1f,
+-0x1.4fcf3p-6f,
+-0x1.56751cp-2f,
+-0x1.51643ap-3f,
+0.0f,
+-0x1.5p-6f,
+
+//intervals from 2.1484375e-2 to 2.34375e-2
+0x1.6ff02ap-6f,
+-0x1.b250fcp-31f,
+0x1.ffbde6p-1f,
+-0x1.6fc15ap-6f,
+-0x1.607af4p-2f,
+0.0f,
+0.0f,
+-0x1.7p-6f,
+
+//intervals from 2.34375e-2 to 2.5390625e-2
+0x1.8feba8p-6f,
+0x1.d0f68p-31f,
+0x1.ffb1e8p-1f,
+-0x1.8fae0ap-6f,
+-0x1.56a5c6p-2f,
+-0x1.5d0732p-3f,
+0.0f,
+-0x1.9p-6f,
+
+//intervals from 2.5390625e-2 to 2.734375e-2
+0x1.afe66p-6f,
+0x1.a5c07p-31f,
+0x1.ffa4eap-1f,
+-0x1.af97cap-6f,
+-0x1.355cdcp-2f,
+0.0f,
+0.0f,
+-0x1.bp-6f,
+
+//intervals from 2.734375e-2 to 2.9296875e-2
+0x1.cfe04p-6f,
+0x1.e1861p-31f,
+0x1.ff96eep-1f,
+-0x1.cf803ep-6f,
+-0x1.45873cp-2f,
+0.0f,
+0.0f,
+-0x1.dp-6f,
+
+//intervals from 2.9296875e-2 to 3.125e-2
+0x1.efd93ap-6f,
+-0x1.639d6cp-31f,
+0x1.ff87f2p-1f,
+-0x1.ef6376p-6f,
+-0x1.3628cp-2f,
+0.0f,
+0.0f,
+-0x1.fp-6f,
+
+//intervals from 3.125e-2 to 3.515625e-2
+0x1.0fe66cp-5f,
+0x1.c4199cp-32f,
+0x1.ff6f9cp-1f,
+-0x1.0f9652p-5f,
+-0x1.5bca9p-2f,
+-0x1.f70ebep-2f,
+0.0f,
+-0x1.1p-5f,
+
+//intervals from 3.515625e-2 to 3.90625e-2
+0x1.2fdc4cp-5f,
+-0x1.31aad8p-31f,
+0x1.ff4baap-1f,
+-0x1.2f72b6p-5f,
+-0x1.4fb862p-2f,
+0x1.ecaa2ep-3f,
+0.0f,
+-0x1.3p-5f,
+
+//intervals from 3.90625e-2 to 4.296875e-2
+0x1.4fcfccp-5f,
+0x1.36c11p-31f,
+0x1.ff23cp-1f,
+-0x1.4f3cd2p-5f,
+-0x1.5a449ep-2f,
+-0x1.66e0e4p-2f,
+0.0f,
+-0x1.5p-5f,
+
+//intervals from 4.296875e-2 to 4.6875e-2
+0x1.6fc0aep-5f,
+0x1.ab6ffp-31f,
+0x1.fef7dap-1f,
+-0x1.6f05fap-5f,
+-0x1.491498p-2f,
+0x1.eeb3p-2f,
+0.0f,
+-0x1.7p-5f,
+
+//intervals from 4.6875e-2 to 5.078125e-2
+0x1.8faeb2p-5f,
+0x1.080d54p-30f,
+0x1.fec7fep-1f,
+-0x1.8ebde8p-5f,
+-0x1.48a1c6p-2f,
+0x1.ca58c2p-2f,
+0.0f,
+-0x1.9p-5f,
+
+//intervals from 5.078125e-2 to 5.46875e-2
+0x1.af999ap-5f,
+-0x1.ae06e6p-30f,
+0x1.fe942cp-1f,
+-0x1.ae68cap-5f,
+-0x1.4a9c52p-2f,
+0x1.45062ep-2f,
+0.0f,
+-0x1.bp-5f,
+
+//intervals from 5.46875e-2 to 5.859375e-2
+0x1.cf8124p-5f,
+-0x1.fb42e8p-30f,
+0x1.fe5c66p-1f,
+-0x1.ce04d6p-5f,
+-0x1.52bb2p-2f,
+-0x1.dae43cp-6f,
+0.0f,
+-0x1.dp-5f,
+
+//intervals from 5.859375e-2 to 6.25e-2
+0x1.ef651p-5f,
+0x1.a72e3ep-30f,
+0x1.fe20acp-1f,
+-0x1.ed954ap-5f,
+-0x1.505594p-2f,
+0x1.4e1668p-5f,
+0.0f,
+-0x1.fp-5f,
+
+//intervals from 6.25e-2 to 7.03125e-2
+0x1.0f99d4p-4f,
+-0x1.0f369ep-29f,
+0x1.fdbfb2p-1f,
+-0x1.0e6808p-4f,
+-0x1.4f89e2p-2f,
+0x1.33bf44p-5f,
+0.0f,
+-0x1.1p-4f,
+
+//intervals from 7.03125e-2 to 7.8125e-2
+0x1.2f716cp-4f,
+-0x1.d2286ep-29f,
+0x1.fd30a4p-1f,
+-0x1.2dc7acp-4f,
+-0x1.4c53a4p-2f,
+0x1.7cc058p-4f,
+0.0f,
+-0x1.3p-4f,
+
+//intervals from 7.8125e-2 to 8.59375e-2
+0x1.4f3f94p-4f,
+0x1.2b74c6p-29f,
+0x1.fc91f2p-1f,
+-0x1.4cffdep-4f,
+-0x1.4e74d4p-2f,
+-0x1.29d30ap-8f,
+0.0f,
+-0x1.5p-4f,
+
+//intervals from 8.59375e-2 to 9.375e-2
+0x1.6f0356p-4f,
+0x1.56daa4p-31f,
+0x1.fbe3aap-1f,
+-0x1.6c11aap-4f,
+-0x1.485b36p-2f,
+0x1.bb3d08p-4f,
+0.0f,
+-0x1.7p-4f,
+
+//intervals from 9.375e-2 to 0.1015625
+0x1.8ebbb8p-4f,
+-0x1.541bp-29f,
+0x1.fb25e8p-1f,
+-0x1.8af418p-4f,
+-0x1.49879ap-2f,
+0x1.4a1088p-5f,
+0.0f,
+-0x1.9p-4f,
+
+//intervals from 0.1015625 to 0.109375
+0x1.ae67cp-4f,
+0x1.fc886ep-29f,
+0x1.fa58bep-1f,
+-0x1.a9a784p-4f,
+-0x1.450028p-2f,
+0x1.8a551p-4f,
+0.0f,
+-0x1.bp-4f,
+
+//intervals from 0.109375 to 0.1171875
+0x1.ce067ep-4f,
+-0x1.be9af2p-30f,
+0x1.f97c4ap-1f,
+-0x1.c8250ap-4f,
+-0x1.462d22p-2f,
+0x1.16f4f6p-5f,
+0.0f,
+-0x1.dp-4f,
+
+//intervals from 0.1171875 to 0.125
+0x1.ed96fap-4f,
+-0x1.c97754p-29f,
+0x1.f890a2p-1f,
+-0x1.e66c3ep-4f,
+-0x1.40e7acp-2f,
+0x1.78cd5cp-4f,
+0.0f,
+-0x1.fp-4f,
+
+//intervals from 0.125 to 0.140625
+0x1.0e6974p-3f,
+-0x1.99caeep-29f,
+0x1.f712ecp-1f,
+-0x1.09b25ep-3f,
+-0x1.3e58d4p-2f,
+0x1.36e3dcp-4f,
+0.0f,
+-0x1.1p-3f,
+
+//intervals from 0.140625 to 0.15625
+0x1.2dc968p-3f,
+0x1.cdc01ap-28f,
+0x1.f4e1e6p-1f,
+-0x1.273bd6p-3f,
+-0x1.38205ep-2f,
+0x1.7c5a9cp-4f,
+-0x1.84fcc6p-2f,
+-0x1.3p-3f,
+
+//intervals from 0.15625 to 0.171875
+0x1.4d0478p-3f,
+0x1.b0c84ap-30f,
+0x1.f2765ap-1f,
+-0x1.443688p-3f,
+-0x1.315bb6p-2f,
+0x1.be3122p-4f,
+0.0f,
+-0x1.5p-3f,
+
+//intervals from 0.171875 to 0.1875
+0x1.6c1702p-3f,
+0x1.6788fp-29f,
+0x1.efd174p-1f,
+-0x1.609548p-3f,
+-0x1.2ae9d2p-2f,
+0x1.cd9692p-4f,
+0.0f,
+-0x1.7p-3f,
+
+//intervals from 0.1875 to 0.203125
+0x1.8afd7cp-3f,
+-0x1.a2c36p-29f,
+0x1.ecf476p-1f,
+-0x1.7c4c32p-3f,
+-0x1.23df4ep-2f,
+0x1.e20bbap-4f,
+0.0f,
+-0x1.9p-3f,
+
+//intervals from 0.203125 to 0.21875
+0x1.a9b46ep-3f,
+-0x1.a44786p-28f,
+0x1.e9e0bcp-1f,
+-0x1.974f96p-3f,
+-0x1.1c9446p-2f,
+0x1.ee0ef2p-4f,
+0.0f,
+-0x1.bp-3f,
+
+//intervals from 0.21875 to 0.234375
+0x1.c83876p-3f,
+0x1.953128p-28f,
+0x1.e697b6p-1f,
+-0x1.b194d6p-3f,
+-0x1.13ddaap-2f,
+0x1.0fc9p-3f,
+0.0f,
+-0x1.dp-3f,
+
+//intervals from 0.234375 to 0.25
+0x1.e6865p-3f,
+-0x1.aa5974p-31f,
+0x1.e31aeep-1f,
+-0x1.cb114ep-3f,
+-0x1.0b7f36p-2f,
+0x1.18e304p-3f,
+0.0f,
+-0x1.fp-3f,
+
+//intervals from 0.25 to 0.28125
+0x1.09c744p-2f,
+0x1.ea70b2p-27f,
+0x1.dd823ap-1f,
+-0x1.efbf9ep-3f,
+-0x1.fbac7cp-3f,
+0x1.2b57b8p-3f,
+0.0f,
+-0x1.1p-2f,
+
+//intervals from 0.28125 to 0.3125
+0x1.275f7ep-2f,
+0x1.cf888ap-30f,
+0x1.d56658p-1f,
+-0x1.0ecc12p-2f,
+-0x1.d554bp-3f,
+0x1.3e00f4p-3f,
+0.0f,
+-0x1.3p-2f,
+
+//intervals from 0.3125 to 0.34375
+0x1.447066p-2f,
+-0x1.ff8fdcp-27f,
+0x1.cc9a6ap-1f,
+-0x1.23ded4p-2f,
+-0x1.ad49d8p-3f,
+0x1.4a8fc8p-3f,
+0x1.7506dp-3f,
+-0x1.5p-2f,
+
+//intervals from 0.34375 to 0.375
+0x1.60ef72p-2f,
+-0x1.bf6344p-27f,
+0x1.c32d96p-1f,
+-0x1.37024ap-2f,
+-0x1.836ffp-3f,
+0x1.52fb98p-3f,
+0.0f,
+-0x1.7p-2f,
+
+//intervals from 0.375 to 0.40625
+0x1.7cd312p-2f,
+-0x1.407cd6p-27f,
+0x1.b92f96p-1f,
+-0x1.48273cp-2f,
+-0x1.57ec48p-3f,
+0x1.5c39a4p-3f,
+0.0f,
+-0x1.9p-2f,
+
+//intervals from 0.40625 to 0.4375
+0x1.9812b4p-2f,
+-0x1.3f1184p-28f,
+0x1.aeb08cp-1f,
+-0x1.57446ap-2f,
+-0x1.2c79ap-3f,
+0x1.5c82d4p-3f,
+-0x1.12c3c4p-2f,
+-0x1.bp-2f,
+
+//intervals from 0.4375 to 0.46875
+0x1.b2a6cap-2f,
+-0x1.b116ap-28f,
+0x1.a3c0c2p-1f,
+-0x1.645722p-2f,
+-0x1.012d4p-3f,
+0x1.5ac87ep-3f,
+0x1.01c044p-7f,
+-0x1.dp-2f,
+
+//intervals from 0.46875 to 0.5
+0x1.cc88cap-2f,
+-0x1.bf5edep-28f,
+0x1.987084p-1f,
+-0x1.6f6234p-2f,
+-0x1.abc10cp-4f,
+0x1.550772p-3f,
+-0x1.8af8dap-2f,
+-0x1.fp-2f,
+
+//intervals from 0.5 to 0.5625
+0x1.f20212p-2f,
+-0x1.72dcb6p-28f,
+0x1.86e67ep-1f,
+-0x1.7c37c2p-2f,
+-0x1.2e941ap-4f,
+0x1.46ead4p-3f,
+-0x1.0e6c8p-4f,
+-0x1.1p-1f,
+
+//intervals from 0.5625 to 0.625
+0x1.10af48p-1f,
+-0x1.f3bbc2p-29f,
+0x1.6ec588p-1f,
+-0x1.86adp-2f,
+-0x1.23dd7ep-5f,
+0x1.2b34b4p-3f,
+-0x1.7a1016p-6f,
+-0x1.3p-1f,
+
+//intervals from 0.625 to 0.6875
+0x1.26d77p-1f,
+-0x1.19a2d6p-26f,
+0x1.56363cp-1f,
+-0x1.8a2246p-2f,
+-0x1.3d16aap-10f,
+0x1.081bb2p-3f,
+-0x1.acae1cp-7f,
+-0x1.5p-1f,
+
+//intervals from 0.6875 to 0.75
+0x1.3b75f8p-1f,
+0x1.797902p-26f,
+0x1.3da23cp-1f,
+-0x1.8769p-2f,
+0x1.d617e4p-6f,
+0x1.c16c92p-4f,
+-0x1.76d634p-5f,
+-0x1.7p-1f,
+
+//intervals from 0.75 to 0.8125
+0x1.4e8d8ap-1f,
+-0x1.4a0086p-26f,
+0x1.25653p-1f,
+-0x1.7f6c3ap-2f,
+0x1.b74222p-5f,
+0x1.6f9fa6p-4f,
+-0x1.46e21ep-5f,
+-0x1.9p-1f,
+
+//intervals from 0.8125 to 0.875
+0x1.60260ap-1f,
+-0x1.546904p-27f,
+0x1.0dcbbp-1f,
+-0x1.732028p-2f,
+0x1.2d860cp-4f,
+0x1.1f70fap-4f,
+-0x1.aed016p-5f,
+-0x1.bp-1f,
+
+//intervals from 0.875 to 0.9375
+0x1.704bb2p-1f,
+-0x1.20137p-27f,
+0x1.ee264ap-2f,
+-0x1.637494p-2f,
+0x1.6c0652p-4f,
+0x1.a8845ap-5f,
+-0x1.490cecp-4f,
+-0x1.dp-1f,
+
+//intervals from 0.9375 to 1
+0x1.7f0e1ap-1f,
+0x1.33577cp-27f,
+0x1.c2d4ccp-2f,
+-0x1.514a9ap-2f,
+0x1.9861bp-4f,
+0x1.20af34p-5f,
+-0x1.192f06p-4f,
+-0x1.fp-1f,
+
+//intervals from 1 to 1.125
+0x1.92bfb4p-1f,
+-0x1.1dc1d4p-26f,
+0x1.86616p-2f,
+-0x1.3314aap-2f,
+0x1.bdc244p-4f,
+0x1.da567p-7f,
+-0x1.50aab6p-5f,
+-0x1.1p0f,
+
+//intervals from 1.125 to 1.25
+0x1.a8dbccp-1f,
+-0x1.e577fcp-28f,
+0x1.3ee73p-2f,
+-0x1.08a064p-2f,
+0x1.c5298ep-4f,
+-0x1.6c9124p-8f,
+-0x1.aa3da6p-6f,
+-0x1.3p0f,
+
+//intervals from 1.25 to 1.375
+0x1.bad50ap-1f,
+0x1.2a708p-27f,
+0x1.01fba8p-2f,
+-0x1.be433ep-3f,
+0x1.abeeacp-4f,
+-0x1.215a92p-6f,
+-0x1.8be69ep-7f,
+-0x1.5p0f,
+
+//intervals from 1.375 to 1.5
+0x1.c950a4p-1f,
+-0x1.979a26p-26f,
+0x1.9e1ep-3f,
+-0x1.71e30ap-3f,
+0x1.80adacp-4f,
+-0x1.8327fcp-6f,
+-0x1.67ff4ep-8f,
+-0x1.7p0f,
+
+//intervals from 1.5 to 1.625
+0x1.d4e6f4p-1f,
+0x1.90fae2p-27f,
+0x1.4a4584p-3f,
+-0x1.2e788cp-3f,
+0x1.4dd7fcp-4f,
+-0x1.9fd692p-6f,
+-0x1.115224p-11f,
+-0x1.9p0f,
+
+//intervals from 1.625 to 1.75
+0x1.de1eb6p-1f,
+-0x1.b2102ap-27f,
+0x1.06129cp-3f,
+-0x1.e97636p-4f,
+0x1.1a5ec4p-4f,
+-0x1.91d004p-6f,
+0x1.23605p-9f,
+-0x1.bp0f,
+
+//intervals from 1.75 to 1.875
+0x1.e56b7p-1f,
+-0x1.82020ap-26f,
+0x1.9e3efep-4f,
+-0x1.88bd9ap-4f,
+0x1.d4875cp-5f,
+-0x1.6ca952p-6f,
+0x1.27eb14p-8f,
+-0x1.dp0f,
+
+//intervals from 1.875 to 2
+0x1.eb2dfep-1f,
+0x1.bac02ap-26f,
+0x1.465a2p-4f,
+-0x1.3914cp-4f,
+0x1.7f23fep-5f,
+-0x1.3da438p-6f,
+0x1.2b77f4p-8f,
+-0x1.fp0f,
+
+//intervals from 2 to 2.25
+0x1.f1994ep-1f,
+-0x1.2e4704p-30f,
+0x1.c65b1cp-5f,
+-0x1.b99352p-5f,
+0x1.15b412p-5f,
+-0x1.eb3cbep-7f,
+0x1.2604bcp-8f,
+-0x1.1p1f,
+
+//intervals from 2.25 to 2.5
+0x1.f73776p-1f,
+0x1.63ca12p-26f,
+0x1.16a7fcp-5f,
+-0x1.11ep-5f,
+0x1.60960ap-6f,
+-0x1.487d5ep-7f,
+0x1.bf572cp-9f,
+-0x1.3p1f,
+
+//intervals from 2.5 to 2.75
+0x1.faa794p-1f,
+-0x1.6a5a84p-26f,
+0x1.5452p-6f,
+-0x1.50c41p-6f,
+0x1.b7a00ep-7f,
+-0x1.a604c2p-8f,
+0x1.336082p-9f,
+-0x1.5p1f,
+
+//intervals from 2.75 to 3
+0x1.fcc04cp-1f,
+0x1.b6ad6ep-26f,
+0x1.9e87dp-7f,
+-0x1.9be5ecp-7f,
+0x1.0f1c62p-7f,
+-0x1.08e08cp-8f,
+0x1.90c792p-10f,
+-0x1.7p1f,
+
+//intervals from 3 to 3.25
+0x1.fe06ecp-1f,
+-0x1.f38ec6p-26f,
+0x1.f81bd8p-8f,
+-0x1.f629dap-8f,
+0x1.4c322p-8f,
+-0x1.47faeap-9f,
+0x1.fb4c78p-11f,
+-0x1.9p1f,
+
+//intervals from 3.25 to 3.5
+0x1.fecd6cp-1f,
+-0x1.032154p-26f,
+0x1.3238b8p-8f,
+-0x1.3180e8p-8f,
+0x1.956e06p-9f,
+-0x1.92d1c8p-10f,
+0x1.3c716p-11f,
+-0x1.bp1f,
+
+//intervals from 3.5 to 3.75
+0x1.ff45f6p-1f,
+0x1.a683d4p-26f,
+0x1.73cecp-9f,
+-0x1.73471ap-9f,
+0x1.eda2fp-10f,
+-0x1.ec4ed2p-11f,
+0x1.845e4cp-12f,
+-0x1.dp1f,
+
+//intervals from 3.75 to 4
+0x1.ff8f22p-1f,
+-0x1.934924p-28f,
+0x1.c34706p-10f,
+-0x1.c2e2dap-10f,
+0x1.2c131p-10f,
+-0x1.2bf536p-11f,
+0x1.dc0c92p-13f,
+-0x1.fp1f,
+
+//intervals from 4 to 4.5
+0x1.ffcaacp-1f,
+0x1.e62fa8p-28f,
+0x1.aa87ep-11f,
+-0x1.aa50cap-11f,
+0x1.1bfb44p-11f,
+-0x1.1f1236p-12f,
+0x1.c98b4p-14f,
+-0x1.1p2f,
+
+//intervals from 4.5 to 5
+0x1.ffec62p-1f,
+-0x1.b28b26p-26f,
+0x1.39e78ep-12f,
+-0x1.39d39ep-12f,
+0x1.a250a2p-13f,
+-0x1.a755a6p-14f,
+0x1.520466p-15f,
+-0x1.3p2f,
+
+//intervals from 5 to 5.5
+0x1.fff8c8p-1f,
+0x1.c1b28ep-29f,
+0x1.cdf5b4p-14f,
+-0x1.cde384p-14f,
+0x1.33e53p-14f,
+-0x1.37b79ap-15f,
+0x1.f22f98p-17f,
+-0x1.5p2f,
+
+//intervals from 5.5 to 6
+0x1.fffd58p-1f,
+0x1.7fb0b8p-28f,
+0x1.53e722p-15f,
+-0x1.53dcc4p-15f,
+0x1.c52264p-16f,
+-0x1.cad476p-17f,
+0x1.6ed94cp-18f,
+-0x1.7p2f,
+
+//intervals from 6 to 6.5
+0x1.ffff06p-1f,
+-0x1.7381bap-29f,
+0x1.f42df2p-17f,
+-0x1.f42054p-17f,
+0x1.4d6a96p-17f,
+-0x1.519fe8p-18f,
+0x1.0de472p-19f,
+-0x1.9p2f,
+
+//intervals from 6.5 to 7
+0x1.ffffa4p-1f,
+-0x1.c35bcp-34f,
+0x1.700364p-18f,
+-0x1.6ff9dp-18f,
+0x1.eaa2ap-19f,
+-0x1.f0d6dap-20f,
+0x1.8d46eep-21f,
+-0x1.bp2f,
+
+//intervals from 7 to 7.5
+0x1.ffffdep-1f,
+0x1.3af904p-28f,
+0x1.0ec4fcp-19f,
+-0x1.0ebe1p-19f,
+0x1.68fe38p-20f,
+-0x1.6d8fp-21f,
+0x1.243fdp-22f,
+-0x1.dp2f,
+
+//intervals from 7.5 to 8
+0x1.fffff4p-1f,
+-0x1.ce28ap-27f,
+0x1.8e713ep-21f,
+-0x1.8e671ep-21f,
+0x1.099a96p-21f,
+-0x1.0cf6ecp-22f,
+0x1.ae1da2p-24f,
+-0x1.fp2f,
+
+//intervals from 8 to 9
+0x1.fffffep-1f,
+-0x1.8e890ep-26f,
+0x1.63a1aep-23f,
+-0x1.630bf8p-23f,
+0x1.d977e2p-24f,
+-0x1.f25ca8p-25f,
+0x1.8dc1e8p-26f,
+-0x1.1p3f,
+
+//intervals from 9 to 9.01091289520263671875
+0x1.fffffep-1f,
+0x1.fa61ccp-26f,
+0x1.02cf1ap-24f,
+-0x1.02ce12p-24f,
+0x1.56cb0cp-25f,
+-0x1.840264p-25f,
+0x1.acd17p-18f,
+-0x1.202cb4p3f,
+
+1.0f,
+0.0f,
+0.0f,
+0.0f,
+0.0f,
+0.0f,
+0.0f,
+0.0f
+};
