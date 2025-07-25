@@ -1,6 +1,6 @@
 /* 
  *========================================================
- * Copyright (c) The Lobachevsky State University of 
+ * Copyright (c) RVVPL and Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
  * 
  * Copyright 2025 The RVVMF Authors (Alexander Sysoyev)
