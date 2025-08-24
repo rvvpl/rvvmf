@@ -82,6 +82,7 @@ vfloat64m1_t __riscv_vtanh_f64m1(vfloat64m1_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f64m1(y, x_m, vl);
     
+    vfloat64m1_t tl, th; 
     vfloat64m1_t px = __riscv_vfmadd_vv_f64m1(y, p13, p12, vl);
     px = __riscv_vfmadd_vv_f64m1(px, y, p11, vl);
     px = __riscv_vfmadd_vv_f64m1(px, y, p10, vl);
@@ -93,8 +94,10 @@ vfloat64m1_t __riscv_vtanh_f64m1(vfloat64m1_t x, size_t avl)
     px = __riscv_vfmadd_vv_f64m1(px, y, p4, vl);
     px = __riscv_vfmadd_vv_f64m1(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f64m1(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f64m1(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f64m1(px, y, p0L, vl);
+    th = __riscv_vfmadd_vv_f64m1(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f64m1(px, y, __riscv_vfsub_vv_f64m1(p1, th, vl), vl);
+    p0L = __riscv_vfmadd_vv_f64m1(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f64m1(th, y, p0L, vl);
     px = __riscv_vfadd_vv_f64m1(px, p0H, vl);
     
     
@@ -160,6 +163,7 @@ vfloat64m2_t __riscv_vtanh_f64m2(vfloat64m2_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f64m2(y, x_m, vl);
     
+    vfloat64m2_t tl, th; 
     vfloat64m2_t px = __riscv_vfmadd_vv_f64m2(y, p13, p12, vl);
     px = __riscv_vfmadd_vv_f64m2(px, y, p11, vl);
     px = __riscv_vfmadd_vv_f64m2(px, y, p10, vl);
@@ -171,8 +175,10 @@ vfloat64m2_t __riscv_vtanh_f64m2(vfloat64m2_t x, size_t avl)
     px = __riscv_vfmadd_vv_f64m2(px, y, p4, vl);
     px = __riscv_vfmadd_vv_f64m2(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f64m2(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f64m2(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f64m2(px, y, p0L, vl);
+    th = __riscv_vfmadd_vv_f64m2(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f64m2(px, y, __riscv_vfsub_vv_f64m2(p1, th, vl), vl);
+    p0L = __riscv_vfmadd_vv_f64m2(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f64m2(th, y, p0L, vl);
     px = __riscv_vfadd_vv_f64m2(px, p0H, vl);
     
     
@@ -238,6 +244,7 @@ vfloat64m4_t __riscv_vtanh_f64m4(vfloat64m4_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f64m4(y, x_m, vl);
     
+    vfloat64m4_t tl, th; 
     vfloat64m4_t px = __riscv_vfmadd_vv_f64m4(y, p13, p12, vl);
     px = __riscv_vfmadd_vv_f64m4(px, y, p11, vl);
     px = __riscv_vfmadd_vv_f64m4(px, y, p10, vl);
@@ -249,8 +256,10 @@ vfloat64m4_t __riscv_vtanh_f64m4(vfloat64m4_t x, size_t avl)
     px = __riscv_vfmadd_vv_f64m4(px, y, p4, vl);
     px = __riscv_vfmadd_vv_f64m4(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f64m4(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f64m4(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f64m4(px, y, p0L, vl);
+    th = __riscv_vfmadd_vv_f64m4(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f64m4(px, y, __riscv_vfsub_vv_f64m4(p1, th, vl), vl);
+    p0L = __riscv_vfmadd_vv_f64m4(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f64m4(th, y, p0L, vl);
     px = __riscv_vfadd_vv_f64m4(px, p0H, vl);
     
     
@@ -323,11 +332,14 @@ vfloat32m1_t __riscv_vtanh_f32m1(vfloat32m1_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f32m1(y, x_m, vl);
     
+    vfloat32m1_t tl, th; 
     vfloat32m1_t px = __riscv_vfmadd_vv_f32m1(y, p5, p4, vl);
     px = __riscv_vfmadd_vv_f32m1(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f32m1(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f32m1(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f32m1(px, y, p0L, vl);
+    th = __riscv_vfmadd_vv_f32m1(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f32m1(px, y, __riscv_vfsub_vv_f32m1(p1, th, vl), vl);
+    p0L = __riscv_vfmadd_vv_f32m1(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f32m1(th, y, p0L, vl);
     px = __riscv_vfadd_vv_f32m1(px, p0H, vl);
     
     vuint32m1_t signx = __riscv_vand_vx_u32m1(
@@ -381,11 +393,14 @@ vfloat32m2_t __riscv_vtanh_f32m2(vfloat32m2_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f32m2(y, x_m, vl);
     
+    vfloat32m2_t tl, th; 
     vfloat32m2_t px = __riscv_vfmadd_vv_f32m2(y, p5, p4, vl);
     px = __riscv_vfmadd_vv_f32m2(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f32m2(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f32m2(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f32m2(px, y, p0L, vl);
+    th = __riscv_vfmadd_vv_f32m2(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f32m2(px, y, __riscv_vfsub_vv_f32m2(p1, th, vl), vl);
+    p0L = __riscv_vfmadd_vv_f32m2(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f32m2(th, y, p0L, vl);
     px = __riscv_vfadd_vv_f32m2(px, p0H, vl);
     
     vuint32m2_t signx = __riscv_vand_vx_u32m2(
@@ -439,11 +454,14 @@ vfloat32m4_t __riscv_vtanh_f32m4(vfloat32m4_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f32m4(y, x_m, vl);
     
+    vfloat32m4_t tl, th; 
     vfloat32m4_t px = __riscv_vfmadd_vv_f32m4(y, p5, p4, vl);
     px = __riscv_vfmadd_vv_f32m4(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f32m4(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f32m4(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f32m4(px, y, p0L, vl);
+    th = __riscv_vfmadd_vv_f32m4(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f32m4(px, y, __riscv_vfsub_vv_f32m4(p1, th, vl), vl);
+    p0L = __riscv_vfmadd_vv_f32m4(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f32m4(th, y, p0L, vl);
     px = __riscv_vfadd_vv_f32m4(px, p0H, vl);
     
     vuint32m4_t signx = __riscv_vand_vx_u32m4(
@@ -499,8 +517,8 @@ vfloat16m1_t __riscv_vtanh_f16m1(vfloat16m1_t x, size_t avl)
     vbool16_t mask = __riscv_vmsltu_vx_u16m1_b16(ix, 0x3400, vl);
     index = __riscv_vmerge_vxm_u16m1(index, 0x0000, mask, vl);
      
-    // 0x1.0a4p+2f16
-    mask = __riscv_vmsgtu_vx_u16m1_b16(ix, 0x4429, vl);
+    // 0x1.204p+2f16
+    mask = __riscv_vmsgtu_vx_u16m1_b16(ix, 0x4481, vl);
     vfloat16m1_t y = __riscv_vreinterpret_v_u16m1_f16m1(
                         __riscv_vmerge_vxm_u16m1(ix, 0x0000, mask, vl));
     index = __riscv_vmerge_vxm_u16m1(index, 10, mask, vl);
@@ -518,13 +536,17 @@ vfloat16m1_t __riscv_vtanh_f16m1(vfloat16m1_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f16m1(y, x_m, vl);
     
+    vfloat16m1_t th, tl, t;
     vfloat16m1_t px = __riscv_vfmadd_vv_f16m1(y, p5, p4, vl);
     px = __riscv_vfmadd_vv_f16m1(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f16m1(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f16m1(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f16m1(px, y, p0L, vl);
-    px = __riscv_vfadd_vv_f16m1(px, p0H, vl);
-    
+    th = __riscv_vfmadd_vv_f16m1(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f16m1(px, y, __riscv_vfsub_vv_f16m1(p1, th, vl), vl);
+    t = __riscv_vfmadd_vv_f16m1(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f16m1(th, y, p0H, vl);
+    tl = __riscv_vfmadd_vv_f16m1(th, y, __riscv_vfsub_vv_f16m1(p0H, px, vl), vl);
+    px = __riscv_vfadd_vv_f16m1(px, __riscv_vfadd_vv_f16m1(tl, t, vl), vl);
+        
     vuint16m1_t signx = __riscv_vand_vx_u16m1(
                 __riscv_vreinterpret_v_f16m1_u16m1(x), 0x8000, vl);
     px = __riscv_vreinterpret_v_u16m1_f16m1(__riscv_vor_vv_u16m1(
@@ -558,7 +580,7 @@ vfloat16m2_t __riscv_vtanh_f16m2(vfloat16m2_t x, size_t avl)
     index = __riscv_vmerge_vxm_u16m2(index, 0x0000, mask, vl);
      
     // 0x1.0a4p+2f16
-    mask = __riscv_vmsgtu_vx_u16m2_b8(ix, 0x4429, vl);
+    mask = __riscv_vmsgtu_vx_u16m2_b8(ix, 0x4481, vl);
     vfloat16m2_t y = __riscv_vreinterpret_v_u16m2_f16m2(
                         __riscv_vmerge_vxm_u16m2(ix, 0x0000, mask, vl));
     index = __riscv_vmerge_vxm_u16m2(index, 10, mask, vl);
@@ -576,12 +598,16 @@ vfloat16m2_t __riscv_vtanh_f16m2(vfloat16m2_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f16m2(y, x_m, vl);
     
+    vfloat16m2_t th, tl, t;
     vfloat16m2_t px = __riscv_vfmadd_vv_f16m2(y, p5, p4, vl);
     px = __riscv_vfmadd_vv_f16m2(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f16m2(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f16m2(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f16m2(px, y, p0L, vl);
-    px = __riscv_vfadd_vv_f16m2(px, p0H, vl);
+    th = __riscv_vfmadd_vv_f16m2(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f16m2(px, y, __riscv_vfsub_vv_f16m2(p1, th, vl), vl);
+    t = __riscv_vfmadd_vv_f16m2(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f16m2(th, y, p0H, vl);
+    tl = __riscv_vfmadd_vv_f16m2(th, y, __riscv_vfsub_vv_f16m2(p0H, px, vl), vl);
+    px = __riscv_vfadd_vv_f16m2(px, __riscv_vfadd_vv_f16m2(tl, t, vl), vl);
     
     vuint16m2_t signx = __riscv_vand_vx_u16m2(
                 __riscv_vreinterpret_v_f16m2_u16m2(x), 0x8000, vl);
@@ -616,7 +642,7 @@ vfloat16m4_t __riscv_vtanh_f16m4(vfloat16m4_t x, size_t avl)
     index = __riscv_vmerge_vxm_u16m4(index, 0x0000, mask, vl);
      
     // 0x1.0a4p+2f16
-    mask = __riscv_vmsgtu_vx_u16m4_b4(ix, 0x4429, vl);
+    mask = __riscv_vmsgtu_vx_u16m4_b4(ix, 0x4481, vl);
     vfloat16m4_t y = __riscv_vreinterpret_v_u16m4_f16m4(
                         __riscv_vmerge_vxm_u16m4(ix, 0x0000, mask, vl));
     index = __riscv_vmerge_vxm_u16m4(index, 10, mask, vl);
@@ -634,12 +660,16 @@ vfloat16m4_t __riscv_vtanh_f16m4(vfloat16m4_t x, size_t avl)
     
     y = __riscv_vfadd_vv_f16m4(y, x_m, vl);
     
+    vfloat16m4_t th, tl, t;
     vfloat16m4_t px = __riscv_vfmadd_vv_f16m4(y, p5, p4, vl);
     px = __riscv_vfmadd_vv_f16m4(px, y, p3, vl);
     px = __riscv_vfmadd_vv_f16m4(px, y, p2, vl);
-    px = __riscv_vfmadd_vv_f16m4(px, y, p1, vl);
-    px = __riscv_vfmadd_vv_f16m4(px, y, p0L, vl);
-    px = __riscv_vfadd_vv_f16m4(px, p0H, vl);
+    th = __riscv_vfmadd_vv_f16m4(px, y, p1, vl);
+    tl = __riscv_vfmadd_vv_f16m4(px, y, __riscv_vfsub_vv_f16m4(p1, th, vl), vl);
+    t = __riscv_vfmadd_vv_f16m4(tl, y, p0L, vl);
+    px = __riscv_vfmadd_vv_f16m4(th, y, p0H, vl);
+    tl = __riscv_vfmadd_vv_f16m4(th, y, __riscv_vfsub_vv_f16m4(p0H, px, vl), vl);
+    px = __riscv_vfadd_vv_f16m4(px, __riscv_vfadd_vv_f16m4(tl, t, vl), vl);
     
     vuint16m4_t signx = __riscv_vand_vx_u16m4(
                 __riscv_vreinterpret_v_f16m4_u16m4(x), 0x8000, vl);
