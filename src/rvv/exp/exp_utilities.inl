@@ -3,7 +3,7 @@
  * Copyright (c) RVVPL and Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
  * 
- * Copyright 2025 The RVVMF Authors (Elena Panova)
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this 
@@ -34,6 +34,10 @@
 #define RVVMF_EXP_DEF_FAST2SUM_FV_FUNC(postfix, stype, vtype) \
     forceinline void fast_2_sum_fv_##postfix(stype a, vtype b, vtype& sh, vtype& sl, size_t vl) \
         { RVVMF_EXP_FAST2SUM_FV(postfix, vtype, a, b, sh, sl, vl); }
+
+#define RVVMF_EXP_DEF_MUL12_VV_FUNC(postfix, stype, vtype) \
+    forceinline void mul12_vv_##postfix(vtype ah, vtype bh, vtype& zh, vtype& zl, size_t vl) \
+        { RVVMF_EXP_MUL12_VV(postfix, vtype, ah, bh, zh, zl, vl); }
 
 #define RVVMF_EXP_DEF_MUL22_VV_FUNC(postfix, stype, vtype) \
     forceinline void mul22_vv_##postfix(vtype ah, vtype al, vtype bh, vtype bl, vtype& zh, vtype& zl, size_t vl) \
@@ -93,6 +97,23 @@ RVVMF_EXP_DEF_FAST2SUM_FV_FUNC(f32m8, float, vfloat32m8_t)
     RVVMF_EXP_DEF_FAST2SUM_FV_FUNC(f16m8, _Float16, vfloat16m8_t)
 #endif
 
+/* mul12 operation, ah*bh=sh+sl */
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f64m1, double, vfloat64m1_t)
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f64m2, double, vfloat64m2_t)
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f64m4, double, vfloat64m4_t)
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f64m8, double, vfloat64m8_t)
+
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f32m1, float, vfloat32m1_t)
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f32m2, float, vfloat32m2_t)
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f32m4, float, vfloat32m4_t)
+RVVMF_EXP_DEF_MUL12_VV_FUNC(f32m8, float, vfloat32m8_t)
+
+#if defined(__riscv_zfh) || defined(__riscv_zvfh)
+    RVVMF_EXP_DEF_MUL12_VV_FUNC(f16m1, _Float16, vfloat16m1_t)
+    RVVMF_EXP_DEF_MUL12_VV_FUNC(f16m2, _Float16, vfloat16m2_t)
+    RVVMF_EXP_DEF_MUL12_VV_FUNC(f16m4, _Float16, vfloat16m4_t)
+    RVVMF_EXP_DEF_MUL12_VV_FUNC(f16m8, _Float16, vfloat16m8_t)
+#endif
 
 /* mul22 operations, (ah+al)*(bh+bl)=sh+sl */
 RVVMF_EXP_DEF_MUL22_VV_FUNC(f64m1, double, vfloat64m1_t)
@@ -320,6 +341,28 @@ RVVMF_EXP_DEF_CALC_POLYNOM_DEG_6_PARALLEL_FUNC(f32m8, float, vfloat32m8_t)
     RVVMF_EXP_DEF_CALC_POLYNOM_DEG_6_PARALLEL_FUNC(f16m2, _Float16, vfloat16m2_t)
     RVVMF_EXP_DEF_CALC_POLYNOM_DEG_6_PARALLEL_FUNC(f16m4, _Float16, vfloat16m4_t)
     RVVMF_EXP_DEF_CALC_POLYNOM_DEG_6_PARALLEL_FUNC(f16m8, _Float16, vfloat16m8_t)
+#endif
+
+
+/* utils */
+
+#define RVVMF_EXP_ABS_FUNC(vtype, elen, lmul, mask) \
+    forceinline vtype abs_f##elen##m##lmul(const vtype& x, size_t vl) \
+        { return RVVMF_EXP_ABS(elen, lmul, x, mask, vl); }
+
+RVVMF_EXP_ABS_FUNC(vfloat64m1_t, 64, 1, (uint64_t)0x7fffffffffffffff)
+RVVMF_EXP_ABS_FUNC(vfloat64m2_t, 64, 2, (uint64_t)0x7fffffffffffffff)
+RVVMF_EXP_ABS_FUNC(vfloat64m4_t, 64, 4, (uint64_t)0x7fffffffffffffff)
+RVVMF_EXP_ABS_FUNC(vfloat64m8_t, 64, 8, (uint64_t)0x7fffffffffffffff)
+RVVMF_EXP_ABS_FUNC(vfloat32m1_t, 32, 1, (uint32_t)0x7fffffff)
+RVVMF_EXP_ABS_FUNC(vfloat32m2_t, 32, 2, (uint32_t)0x7fffffff)
+RVVMF_EXP_ABS_FUNC(vfloat32m4_t, 32, 4, (uint32_t)0x7fffffff)
+RVVMF_EXP_ABS_FUNC(vfloat32m8_t, 32, 8, (uint32_t)0x7fffffff)
+#if defined(__riscv_zfh) || defined(__riscv_zvfh)
+    RVVMF_EXP_ABS_FUNC(vfloat16m1_t, 16, 1, (uint16_t)0x7fff)
+    RVVMF_EXP_ABS_FUNC(vfloat16m2_t, 16, 2, (uint16_t)0x7fff)
+    RVVMF_EXP_ABS_FUNC(vfloat16m4_t, 16, 4, (uint16_t)0x7fff)
+    RVVMF_EXP_ABS_FUNC(vfloat16m8_t, 16, 8, (uint16_t)0x7fff)
 #endif
 
 #endif
