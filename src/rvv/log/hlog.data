@@ -1,0 +1,23 @@
+/* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2026 The RVVMF Authors (Vladislav Polozov,
+ * Elena Panova)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+static _Float16 table_half_log_R[16] = {
+0x1.cp+6f16, 0x1.8bp+6f16, 0x1.49p+6f16, 0x1.e8cp+5f16, 0x1.c9p+5f16, 0x1.fb4p+4f16, 0x1.254p+4f16, 0x1.254p+4f16, 0x0p+0f16, -0x1.4ecp+3f16, -0x1.698p+4f16, -0x1.fap+4f16, -0x1.4a4p+5f16, -0x1.ccp+5f16, -0x1.ccp+5f16, -0x1.1ap+6f16
+};
+static _Float16 table_half_log_Rl[16] = {
+-0x1.8p-4f16, -0x1.bp-4f16, 0x1.ap-4f16, 0x1.4p-6f16, -0x1p-4f16, 0x1.8p-5f16, -0x1.4p-5f16, -0x1.4p-5f16, 0x0p+0f16, 0x1.8p-6f16, 0x1.ep-4f16, -0x1.dp-4f16, -0x1.2p-4f16, -0x1p-7f16, -0x1p-7f16, 0x1.48p-3f16
+};
+static _Float16 table_half_R[16] = {
+0x1.8c8p+8f16, 0x1.788p+8f16, 0x1.61p+8f16, 0x1.45p+8f16, 0x1.4p+8f16, 0x1.21cp+8f16, 0x1.13p+8f16, 0x1.13p+8f16, 0x1p+8f16, 0x1.eb8p+7f16, 0x1.d4cp+7f16, 0x1.c48p+7f16, 0x1.b3cp+7f16, 0x1.99p+7f16, 0x1.99p+7f16, 0x1.84cp+7f16
+};
