@@ -50,9 +50,6 @@ constexpr FLOAT16_T M_LOG2_2K_L_F16 = -0x1.72p-11f16;
 constexpr FLOAT16_T M_LOG2_2K_LL_F16 = -0x1.8p-23f16;
 
 constexpr int16_t FACTOR_DEG_SIGNED_F16 = 11;
-constexpr uint16_t FACTOR_DEG_F16 = 15 - 11;
-constexpr uint16_t MAGIC_CONST_2_F16 = 0x002a;      // uint6_t(-11-11)
-constexpr FLOAT16_T SHIFT_REC_F16 = 0x1p-22f16;     // 2^(-11-11)
 constexpr FLOAT16_T FACTOR_F16 = 0x1p11f16;
 constexpr FLOAT16_T INV_FACTOR_F16 = 0x1p-11f16;
 constexpr FLOAT16_T EXP_THRESHOLD_AVOID_UNDERFFLOW_IN_SQR_F16 = 0x1p-11f16;
@@ -142,7 +139,7 @@ forceinline void do_exp2_argument_reduction_f16m1(vfloat16m1_t x, vfloat16m1_t& 
 forceinline void get_table_values_hl_f16m1(
     vuint16m1_t& index, vfloat16m1_t& th, vfloat16m1_t& tl, size_t vl)
 {
-    index = __riscv_vmul_vx_u16m1(index, uint16_t(sizeof(FLOAT16_T)), vl);
+    index = __riscv_vsll_vx_u16m1(index, (size_t)1, vl);
     th = __riscv_vloxei16_v_f16m1(LOOK_UP_TABLE_HIGH_F16, index, vl);
     tl = __riscv_vloxei16_v_f16m1(LOOK_UP_TABLE_LOW_F16, index, vl);
 }
@@ -193,33 +190,33 @@ forceinline void calculate_exp2_polynom_hl12_f16m1(vfloat16m1_t yh, vfloat16m1_t
 forceinline void reconstruct_exp_hl_hl_f16m1(vfloat16m1_t th, vfloat16m1_t tl,
     vfloat16m1_t pm1h, vfloat16m1_t pm1l, vuint16m1_t ei, vfloat16m1_t& res, size_t vl)
 {
-    vfloat16m1_t rh, rl, zh, zl;
-    fast_2_sum_fv_f16m1(FACTOR_F16, pm1h, rh, rl, vl);
-    rl = __riscv_vfmadd_vf_f16m1(rl, FACTOR_F16, pm1l, vl);
+    vfloat16m1_t zh, zl;
+    fma12_vv_f16m1(th, pm1h, __riscv_vfmul_vf_f16m1(th, FACTOR_F16, vl), zh, zl, vl);
+    zl = __riscv_vfmadd_vf_f16m1(zl, FACTOR_F16, __riscv_vfmadd_vv_f16m1(th, pm1l,
+        __riscv_vfmadd_vv_f16m1(tl, pm1h, __riscv_vfmul_vf_f16m1(tl, FACTOR_F16, vl), vl), vl), vl);
+    zl = __riscv_vfadd_vf_f16m1(zl, 0x1p-1f16, vl);
 
-    zh = __riscv_vfmul_vv_f16m1(th, rh, vl);
-    zl = __riscv_vfmsub_vv_f16m1(th, rh, zh, vl);
-    zl = __riscv_vfmadd_vf_f16m1(zl, FACTOR_F16, __riscv_vfmadd_vv_f16m1(
-        th, rl, __riscv_vfmul_vv_f16m1(tl, rh, vl), vl), vl);
-    res = __riscv_vfmadd_vf_f16m1(zl, INV_FACTOR_F16, zh, vl);
+    ei = __riscv_vsll_vx_u16m1(__riscv_vadd_vx_u16m1(ei, (uint16_t)0x001e, vl), (size_t)9, vl);
+    vuint16m1_t shifti = __riscv_vand_vx_u16m1(ei, (uint16_t)0x0200, vl);
+    vuint16m1_t pow2e1i = __riscv_vadd_vv_u16m1(ei, shifti, vl);
+    vuint16m1_t pow2e2i = __riscv_vsub_vv_u16m1(ei, shifti, vl);
+    vfloat16m1_t pow2e1 = __riscv_vreinterpret_v_u16m1_f16m1(pow2e1i);
+    vfloat16m1_t pow2e2 = __riscv_vreinterpret_v_u16m1_f16m1(pow2e2i);
+    vfloat16m1_t invpow2e2 = __riscv_vreinterpret_v_u16m1_f16m1(__riscv_vrsub_vx_u16m1(pow2e2i, (uint16_t)0x7800, vl));
+    vfloat16m1_t pow2e1f = __riscv_vfmul_vf_f16m1(pow2e1, INV_FACTOR_F16, vl);
+    vfloat16m1_t pow2e2f = __riscv_vfmul_vf_f16m1(pow2e2, INV_FACTOR_F16, vl);
 
-    vuint16m1_t sign_ei = __riscv_vsrl_vx_u16m1(ei, (size_t)5, vl);
-    vuint16m1_t shift = __riscv_vmul_vx_u16m1(sign_ei, MAGIC_CONST_2_F16, vl);
-    vfloat16m1_t signf = __riscv_vreinterpret_v_u16m1_f16m1(__riscv_vmul_vx_u16m1(sign_ei, (uint16_t)0x3c00, vl));
-
-    vuint16m1_t pow2ei = __riscv_vadd_vv_u16m1(__riscv_vrsub_vx_u16m1(shift, FACTOR_DEG_F16, vl), ei, vl);
-    vfloat16m1_t pow2e = __riscv_vreinterpret_v_u16m1_f16m1(__riscv_vsll_vx_u16m1(pow2ei, (size_t)10, vl));
-    vfloat16m1_t factor = __riscv_vfmadd_vf_f16m1(signf, SHIFT_REC_F16, __riscv_vfrsub_vf_f16m1(signf, ONE_F16, vl), vl);
-
-    res = __riscv_vfmul_vv_f16m1(res, factor, vl);
-    res = __riscv_vfmul_vv_f16m1(res, pow2e, vl);
-
-    res = abs_f16m1(res, vl);
+    zh = __riscv_vfmul_vv_f16m1(zh, pow2e1f, vl);
+    res = __riscv_vfmul_vv_f16m1(zh, pow2e2, vl);
+    vfloat16m1_t tmp = __riscv_vfmul_vf_f16m1(__riscv_vfnmsac_vv_f16m1(zh, res, invpow2e2, vl), FACTOR_F16, vl);
+    res = __riscv_vfmacc_vv_f16m1(res, __riscv_vfmadd_vv_f16m1(zl, pow2e1f, tmp, vl), pow2e2f, vl);
 }
 
 forceinline void reconstruct_expm1_f16m1(vfloat16m1_t th, vfloat16m1_t tl,
     vfloat16m1_t pm1h, vfloat16m1_t pm1l, vuint16m1_t ei, vfloat16m1_t& res, size_t vl)
 {
+    vbool16_t mNearZero = __riscv_vmseq_vx_u16m1_b16(ei, (uint16_t)0, vl);
+
     vfloat16m1_t rh, rl, rll;
     fast_2_sum_fv_f16m1(FACTOR_F16, pm1h, rh, rl, vl);
     fast_2_sum_vv_f16m1(__riscv_vfmul_vf_f16m1(rl, FACTOR_F16, vl), pm1l, rl, rll, vl);
@@ -232,50 +229,28 @@ forceinline void reconstruct_expm1_f16m1(vfloat16m1_t th, vfloat16m1_t tl,
     rh = __riscv_vfmadd_vf_f16m1(zl, INV_FACTOR_F16, zh, vl);
     rl = __riscv_vfmadd_vf_f16m1(__riscv_vfsub_vv_f16m1(zh, rh, vl), FACTOR_F16, zl, vl);
 
+#ifndef __FAST_MATH__   
+    rl  = __riscv_vfmerge_vfm_f16m1(rl, ZERO_F16, __riscv_vmflt_vf_f16m1_b16(abs_f16m1(rl, vl), 0x1p0f16, vl), vl);
+#endif
+
     constexpr FLOAT16_T invfactore = INV_FACTOR_F16*0x1p1f16;
     vuint16m1_t pow2ei = __riscv_vsll_vx_u16m1(__riscv_vadd_vx_u16m1(ei, (uint16_t)14, vl), (size_t)10, vl);
     vfloat16m1_t pow2e = __riscv_vfmul_vf_f16m1(__riscv_vreinterpret_v_u16m1_f16m1(pow2ei), invfactore, vl);
-
-#ifndef __FAST_MATH__
-    vint16m1_t rlpower = __riscv_vsra_vx_i16m1(__riscv_vand_vx_i16m1(
-        __riscv_vreinterpret_v_f16m1_i16m1(rl), (int16_t)0x7c00, vl), (size_t)10, vl);
-    constexpr int16_t factor_signed = -FACTOR_DEG_SIGNED_F16 - (int16_t)1;
-    rlpower = __riscv_vadd_vv_i16m1(rlpower, __riscv_vadd_vx_i16m1(
-        __riscv_vreinterpret_v_u16m1_i16m1(ei), factor_signed, vl), vl);
-    rl = __riscv_vfmerge_vfm_f16m1(rl, ZERO_F16, __riscv_vmsne_vx_i16m1_b16(
-        __riscv_vand_vx_i16m1(rlpower, (int16_t)0x0020, vl), (int16_t)0, vl), vl);
-#endif
-
     rh = __riscv_vfmul_vv_f16m1(rh, pow2e, vl);
-    rl = __riscv_vfmul_vv_f16m1(rl, pow2e, vl);
 
-    vfloat16m1_t sh1, sl1, maxs, mins;
-    vbool16_t sortMask = __riscv_vmsgtu_vx_u16m1_b16(__riscv_vand_vx_u16m1(__riscv_vreinterpret_v_f16m1_u16m1(rh),
-        (uint16_t)0x7c00, vl), (uint16_t)0x3c00, vl);
-    maxs = __riscv_vfmerge_vfm_f16m1(rh, EXPM1_UNDERFLOW_VALUE_F16, __riscv_vmnot_m_b16(sortMask, vl), vl);
-    mins = __riscv_vfmerge_vfm_f16m1(rh, EXPM1_UNDERFLOW_VALUE_F16, sortMask, vl);
-    fast_2_sum_vv_f16m1(maxs, mins, sh1, sl1, vl);
+    vfloat16m1_t sh1, sl1;
+    sh1 = __riscv_vfadd_vf_f16m1(rh, EXPM1_UNDERFLOW_VALUE_F16, vl);
+    sl1 = __riscv_vfsub_vv_f16m1(sh1, rh, vl);
+    sl1 = __riscv_vfadd_vv_f16m1(__riscv_vfsub_vv_f16m1(rh, __riscv_vfsub_vv_f16m1(sh1, sl1, vl), vl),
+        __riscv_vfrsub_vf_f16m1(sl1, EXPM1_UNDERFLOW_VALUE_F16, vl), vl);
 
-    vfloat16m1_t sh2, sl2, resl;
-    fast_2_sum_vv_f16m1(__riscv_vfmul_vf_f16m1(sl1, FACTOR_F16, vl), rl, sh2, sl2, vl);
-    sl2 = __riscv_vfmadd_vf_f16m1(sl2, FACTOR_F16, rll, vl);
-
-    res = __riscv_vfmadd_vf_f16m1(sh2, INV_FACTOR_F16, sh1, vl);
-    resl = __riscv_vfmadd_vf_f16m1(__riscv_vfsub_vv_f16m1(sh1, res, vl), FACTOR_F16, sh2, vl);
-#ifndef __FAST_MATH__
-    resl = __riscv_vfadd_vf_f16m1(resl, (FLOAT16_T)0x1p-13f16, vl);
-#endif
-    resl = __riscv_vfmadd_vf_f16m1(sl2, INV_FACTOR_F16, resl, vl);
-#ifndef __FAST_MATH__
-    resl = __riscv_vfsub_vf_f16m1(resl, (FLOAT16_T)0x1p-13f16, vl);
-#endif
-    res = __riscv_vfmacc_vf_f16m1(res, INV_FACTOR_F16, resl, vl);
-}
-
-forceinline void process_linear_f16m1(vfloat16m1_t x, vfloat16m1_t& res, size_t vl)
-{
-    vbool16_t linearMask = __riscv_vmflt_vf_f16m1_b16(abs_f16m1(x, vl), EXPM1_LINEAR_THRESHOLD_F16, vl);
-    res = __riscv_vmerge_vvm_f16m1(res, x, linearMask, vl);
+    vfloat16m1_t tmp, resl;
+    tmp = __riscv_vfmadd_vv_f16m1(rl, pow2e, __riscv_vfmul_vf_f16m1(sl1, FACTOR_F16, vl), vl);
+    res = __riscv_vfmadd_vf_f16m1(tmp, INV_FACTOR_F16, sh1, vl);
+    resl = __riscv_vfmadd_vf_f16m1(__riscv_vfsub_vv_f16m1(sh1, res, vl), FACTOR_F16, tmp, vl);
+    resl = __riscv_vfmadd_vf_f16m1_mu(mNearZero, resl, FACTOR_F16, rll, vl);
+    constexpr FLOAT16_T invfactor2 = INV_FACTOR_F16*INV_FACTOR_F16;
+    res = __riscv_vfmacc_vf_f16m1_mu(mNearZero, res, invfactor2, resl, vl);
 }
 
 forceinline void process_linear_f16m1(vfloat16m1_t x, vfloat16m1_t& xc, vbool16_t& linearMask, size_t vl)
@@ -288,22 +263,6 @@ forceinline void set_fe_underflow_f16m1(vfloat16m1_t& res, size_t vl)
 {
 #ifndef __FAST_MATH__
     volatile vfloat16m1_t tmp = __riscv_vfmadd_vf_f16m1(res, (FLOAT16_T)0x1p-14f16, res, vl);
-#endif
-}
-
-forceinline void exp2_set_fe_underflow_f16m1(vfloat16m1_t x, vfloat16m1_t& res, size_t vl)
-{
-#ifndef __FAST_MATH__
-    vuint16m1_t mask = __riscv_vsrl_vx_u16m1(__riscv_vand_vx_u16m1(
-        __riscv_vreinterpret_v_f16m1_u16m1(x), (uint16_t)0x7c00, vl), (size_t)10, vl);
-    mask = __riscv_vsub_vx_u16m1(__riscv_vsll_vv_u16m1(__riscv_vmv_v_x_u16m1((uint16_t)1, vl),
-        __riscv_vrsub_vx_u16m1(mask, (uint16_t)25, vl), vl), (uint16_t)1, vl);
-    vbool16_t intMask = __riscv_vmseq_vx_u16m1_b16(
-        __riscv_vand_vv_u16m1(__riscv_vreinterpret_v_f16m1_u16m1(x), mask, vl), (uint16_t)0, vl);
-
-    vfloat16m1_t coeff = __riscv_vfmerge_vfm_f16m1(
-        __riscv_vfmv_v_f_f16m1((FLOAT16_T)0x1p-14f16, vl), ZERO_F16, intMask, vl);
-    volatile vfloat16m1_t tmp = __riscv_vfmadd_vv_f16m1(res, coeff, res, vl);
 #endif
 }
 
@@ -374,7 +333,7 @@ forceinline void do_exp2_argument_reduction_f16m2(vfloat16m2_t x, vfloat16m2_t& 
 forceinline void get_table_values_hl_f16m2(
     vuint16m2_t& index, vfloat16m2_t& th, vfloat16m2_t& tl, size_t vl)
 {
-    index = __riscv_vmul_vx_u16m2(index, uint16_t(sizeof(FLOAT16_T)), vl);
+    index = __riscv_vsll_vx_u16m2(index, (size_t)1, vl);
     th = __riscv_vloxei16_v_f16m2(LOOK_UP_TABLE_HIGH_F16, index, vl);
     tl = __riscv_vloxei16_v_f16m2(LOOK_UP_TABLE_LOW_F16, index, vl);
 }
@@ -425,33 +384,33 @@ forceinline void calculate_exp2_polynom_hl12_f16m2(vfloat16m2_t yh, vfloat16m2_t
 forceinline void reconstruct_exp_hl_hl_f16m2(vfloat16m2_t th, vfloat16m2_t tl,
     vfloat16m2_t pm1h, vfloat16m2_t pm1l, vuint16m2_t ei, vfloat16m2_t& res, size_t vl)
 {
-    vfloat16m2_t rh, rl, zh, zl;
-    fast_2_sum_fv_f16m2(FACTOR_F16, pm1h, rh, rl, vl);
-    rl = __riscv_vfmadd_vf_f16m2(rl, FACTOR_F16, pm1l, vl);
+    vfloat16m2_t zh, zl;
+    fma12_vv_f16m2(th, pm1h, __riscv_vfmul_vf_f16m2(th, FACTOR_F16, vl), zh, zl, vl);
+    zl = __riscv_vfmadd_vf_f16m2(zl, FACTOR_F16, __riscv_vfmadd_vv_f16m2(th, pm1l,
+        __riscv_vfmadd_vv_f16m2(tl, pm1h, __riscv_vfmul_vf_f16m2(tl, FACTOR_F16, vl), vl), vl), vl);
+    zl = __riscv_vfadd_vf_f16m2(zl, 0x1p-1f16, vl);
 
-    zh = __riscv_vfmul_vv_f16m2(th, rh, vl);
-    zl = __riscv_vfmsub_vv_f16m2(th, rh, zh, vl);
-    zl = __riscv_vfmadd_vf_f16m2(zl, FACTOR_F16, __riscv_vfmadd_vv_f16m2(
-        th, rl, __riscv_vfmul_vv_f16m2(tl, rh, vl), vl), vl);
-    res = __riscv_vfmadd_vf_f16m2(zl, INV_FACTOR_F16, zh, vl);
+    ei = __riscv_vsll_vx_u16m2(__riscv_vadd_vx_u16m2(ei, (uint16_t)0x001e, vl), (size_t)9, vl);
+    vuint16m2_t shifti = __riscv_vand_vx_u16m2(ei, (uint16_t)0x0200, vl);
+    vuint16m2_t pow2e1i = __riscv_vadd_vv_u16m2(ei, shifti, vl);
+    vuint16m2_t pow2e2i = __riscv_vsub_vv_u16m2(ei, shifti, vl);
+    vfloat16m2_t pow2e1 = __riscv_vreinterpret_v_u16m2_f16m2(pow2e1i);
+    vfloat16m2_t pow2e2 = __riscv_vreinterpret_v_u16m2_f16m2(pow2e2i);
+    vfloat16m2_t invpow2e2 = __riscv_vreinterpret_v_u16m2_f16m2(__riscv_vrsub_vx_u16m2(pow2e2i, (uint16_t)0x7800, vl));
+    vfloat16m2_t pow2e1f = __riscv_vfmul_vf_f16m2(pow2e1, INV_FACTOR_F16, vl);
+    vfloat16m2_t pow2e2f = __riscv_vfmul_vf_f16m2(pow2e2, INV_FACTOR_F16, vl);
 
-    vuint16m2_t sign_ei = __riscv_vsrl_vx_u16m2(ei, (size_t)5, vl);
-    vuint16m2_t shift = __riscv_vmul_vx_u16m2(sign_ei, MAGIC_CONST_2_F16, vl);
-    vfloat16m2_t signf = __riscv_vreinterpret_v_u16m2_f16m2(__riscv_vmul_vx_u16m2(sign_ei, (uint16_t)0x3c00, vl));
-
-    vuint16m2_t pow2ei = __riscv_vadd_vv_u16m2(__riscv_vrsub_vx_u16m2(shift, FACTOR_DEG_F16, vl), ei, vl);
-    vfloat16m2_t pow2e = __riscv_vreinterpret_v_u16m2_f16m2(__riscv_vsll_vx_u16m2(pow2ei, (size_t)10, vl));
-    vfloat16m2_t factor = __riscv_vfmadd_vf_f16m2(signf, SHIFT_REC_F16, __riscv_vfrsub_vf_f16m2(signf, ONE_F16, vl), vl);
-
-    res = __riscv_vfmul_vv_f16m2(res, factor, vl);
-    res = __riscv_vfmul_vv_f16m2(res, pow2e, vl);
-
-    res = abs_f16m2(res, vl);
+    zh = __riscv_vfmul_vv_f16m2(zh, pow2e1f, vl);
+    res = __riscv_vfmul_vv_f16m2(zh, pow2e2, vl);
+    vfloat16m2_t tmp = __riscv_vfmul_vf_f16m2(__riscv_vfnmsac_vv_f16m2(zh, res, invpow2e2, vl), FACTOR_F16, vl);
+    res = __riscv_vfmacc_vv_f16m2(res, __riscv_vfmadd_vv_f16m2(zl, pow2e1f, tmp, vl), pow2e2f, vl);
 }
 
 forceinline void reconstruct_expm1_f16m2(vfloat16m2_t th, vfloat16m2_t tl,
     vfloat16m2_t pm1h, vfloat16m2_t pm1l, vuint16m2_t ei, vfloat16m2_t& res, size_t vl)
 {
+    vbool8_t mNearZero = __riscv_vmseq_vx_u16m2_b8(ei, (uint16_t)0, vl);
+
     vfloat16m2_t rh, rl, rll;
     fast_2_sum_fv_f16m2(FACTOR_F16, pm1h, rh, rl, vl);
     fast_2_sum_vv_f16m2(__riscv_vfmul_vf_f16m2(rl, FACTOR_F16, vl), pm1l, rl, rll, vl);
@@ -464,50 +423,28 @@ forceinline void reconstruct_expm1_f16m2(vfloat16m2_t th, vfloat16m2_t tl,
     rh = __riscv_vfmadd_vf_f16m2(zl, INV_FACTOR_F16, zh, vl);
     rl = __riscv_vfmadd_vf_f16m2(__riscv_vfsub_vv_f16m2(zh, rh, vl), FACTOR_F16, zl, vl);
 
+#ifndef __FAST_MATH__   
+    rl  = __riscv_vfmerge_vfm_f16m2(rl, ZERO_F16, __riscv_vmflt_vf_f16m2_b8(abs_f16m2(rl, vl), 0x1p0f16, vl), vl);
+#endif
+
     constexpr FLOAT16_T invfactore = INV_FACTOR_F16*0x1p1f16;
     vuint16m2_t pow2ei = __riscv_vsll_vx_u16m2(__riscv_vadd_vx_u16m2(ei, (uint16_t)14, vl), (size_t)10, vl);
     vfloat16m2_t pow2e = __riscv_vfmul_vf_f16m2(__riscv_vreinterpret_v_u16m2_f16m2(pow2ei), invfactore, vl);
-
-#ifndef __FAST_MATH__
-    vint16m2_t rlpower = __riscv_vsra_vx_i16m2(__riscv_vand_vx_i16m2(
-        __riscv_vreinterpret_v_f16m2_i16m2(rl), (int16_t)0x7c00, vl), (size_t)10, vl);
-    constexpr int16_t factor_signed = -FACTOR_DEG_SIGNED_F16 - (int16_t)1;
-    rlpower = __riscv_vadd_vv_i16m2(rlpower, __riscv_vadd_vx_i16m2(
-        __riscv_vreinterpret_v_u16m2_i16m2(ei), factor_signed, vl), vl);
-    rl = __riscv_vfmerge_vfm_f16m2(rl, ZERO_F16, __riscv_vmsne_vx_i16m2_b8(
-        __riscv_vand_vx_i16m2(rlpower, (int16_t)0x0020, vl), (int16_t)0, vl), vl);
-#endif
-
     rh = __riscv_vfmul_vv_f16m2(rh, pow2e, vl);
-    rl = __riscv_vfmul_vv_f16m2(rl, pow2e, vl);
 
-    vfloat16m2_t sh1, sl1, maxs, mins;
-    vbool8_t sortMask = __riscv_vmsgtu_vx_u16m2_b8(__riscv_vand_vx_u16m2(__riscv_vreinterpret_v_f16m2_u16m2(rh),
-        (uint16_t)0x7c00, vl), (uint16_t)0x3c00, vl);
-    maxs = __riscv_vfmerge_vfm_f16m2(rh, EXPM1_UNDERFLOW_VALUE_F16, __riscv_vmnot_m_b8(sortMask, vl), vl);
-    mins = __riscv_vfmerge_vfm_f16m2(rh, EXPM1_UNDERFLOW_VALUE_F16, sortMask, vl);
-    fast_2_sum_vv_f16m2(maxs, mins, sh1, sl1, vl);
+    vfloat16m2_t sh1, sl1;
+    sh1 = __riscv_vfadd_vf_f16m2(rh, EXPM1_UNDERFLOW_VALUE_F16, vl);
+    sl1 = __riscv_vfsub_vv_f16m2(sh1, rh, vl);
+    sl1 = __riscv_vfadd_vv_f16m2(__riscv_vfsub_vv_f16m2(rh, __riscv_vfsub_vv_f16m2(sh1, sl1, vl), vl),
+        __riscv_vfrsub_vf_f16m2(sl1, EXPM1_UNDERFLOW_VALUE_F16, vl), vl);
 
-    vfloat16m2_t sh2, sl2, resl;
-    fast_2_sum_vv_f16m2(__riscv_vfmul_vf_f16m2(sl1, FACTOR_F16, vl), rl, sh2, sl2, vl);
-    sl2 = __riscv_vfmadd_vf_f16m2(sl2, FACTOR_F16, rll, vl);
-
-    res = __riscv_vfmadd_vf_f16m2(sh2, INV_FACTOR_F16, sh1, vl);
-    resl = __riscv_vfmadd_vf_f16m2(__riscv_vfsub_vv_f16m2(sh1, res, vl), FACTOR_F16, sh2, vl);
-#ifndef __FAST_MATH__
-    resl = __riscv_vfadd_vf_f16m2(resl, (FLOAT16_T)0x1p-13f16, vl);
-#endif
-    resl = __riscv_vfmadd_vf_f16m2(sl2, INV_FACTOR_F16, resl, vl);
-#ifndef __FAST_MATH__
-    resl = __riscv_vfsub_vf_f16m2(resl, (FLOAT16_T)0x1p-13f16, vl);
-#endif
-    res = __riscv_vfmacc_vf_f16m2(res, INV_FACTOR_F16, resl, vl);
-}
-
-forceinline void process_linear_f16m2(vfloat16m2_t x, vfloat16m2_t& res, size_t vl)
-{
-    vbool8_t linearMask = __riscv_vmflt_vf_f16m2_b8(abs_f16m2(x, vl), EXPM1_LINEAR_THRESHOLD_F16, vl);
-    res = __riscv_vmerge_vvm_f16m2(res, x, linearMask, vl);
+    vfloat16m2_t tmp, resl;
+    tmp = __riscv_vfmadd_vv_f16m2(rl, pow2e, __riscv_vfmul_vf_f16m2(sl1, FACTOR_F16, vl), vl);
+    res = __riscv_vfmadd_vf_f16m2(tmp, INV_FACTOR_F16, sh1, vl);
+    resl = __riscv_vfmadd_vf_f16m2(__riscv_vfsub_vv_f16m2(sh1, res, vl), FACTOR_F16, tmp, vl);
+    resl = __riscv_vfmadd_vf_f16m2_mu(mNearZero, resl, FACTOR_F16, rll, vl);
+    constexpr FLOAT16_T invfactor2 = INV_FACTOR_F16*INV_FACTOR_F16;
+    res = __riscv_vfmacc_vf_f16m2_mu(mNearZero, res, invfactor2, resl, vl);
 }
 
 forceinline void process_linear_f16m2(vfloat16m2_t x, vfloat16m2_t& xc, vbool8_t& linearMask, size_t vl)
@@ -520,22 +457,6 @@ forceinline void set_fe_underflow_f16m2(vfloat16m2_t& res, size_t vl)
 {
 #ifndef __FAST_MATH__
     volatile vfloat16m2_t tmp = __riscv_vfmadd_vf_f16m2(res, (FLOAT16_T)0x1p-14f16, res, vl);
-#endif
-}
-
-forceinline void exp2_set_fe_underflow_f16m2(vfloat16m2_t x, vfloat16m2_t& res, size_t vl)
-{
-#ifndef __FAST_MATH__
-    vuint16m2_t mask = __riscv_vsrl_vx_u16m2(__riscv_vand_vx_u16m2(
-        __riscv_vreinterpret_v_f16m2_u16m2(x), (uint16_t)0x7c00, vl), (size_t)10, vl);
-    mask = __riscv_vsub_vx_u16m2(__riscv_vsll_vv_u16m2(__riscv_vmv_v_x_u16m2((uint16_t)1, vl),
-        __riscv_vrsub_vx_u16m2(mask, (uint16_t)25, vl), vl), (uint16_t)1, vl);
-    vbool8_t intMask = __riscv_vmseq_vx_u16m2_b8(
-        __riscv_vand_vv_u16m2(__riscv_vreinterpret_v_f16m2_u16m2(x), mask, vl), (uint16_t)0, vl);
-
-    vfloat16m2_t coeff = __riscv_vfmerge_vfm_f16m2(
-        __riscv_vfmv_v_f_f16m2((FLOAT16_T)0x1p-14f16, vl), ZERO_F16, intMask, vl);
-    volatile vfloat16m2_t tmp = __riscv_vfmadd_vv_f16m2(res, coeff, res, vl);
 #endif
 }
 
@@ -606,7 +527,7 @@ forceinline void do_exp2_argument_reduction_f16m4(vfloat16m4_t x, vfloat16m4_t& 
 forceinline void get_table_values_hl_f16m4(
     vuint16m4_t& index, vfloat16m4_t& th, vfloat16m4_t& tl, size_t vl)
 {
-    index = __riscv_vmul_vx_u16m4(index, uint16_t(sizeof(FLOAT16_T)), vl);
+    index = __riscv_vsll_vx_u16m4(index, (size_t)1, vl);
     th = __riscv_vloxei16_v_f16m4(LOOK_UP_TABLE_HIGH_F16, index, vl);
     tl = __riscv_vloxei16_v_f16m4(LOOK_UP_TABLE_LOW_F16, index, vl);
 }
@@ -657,33 +578,33 @@ forceinline void calculate_exp2_polynom_hl12_f16m4(vfloat16m4_t yh, vfloat16m4_t
 forceinline void reconstruct_exp_hl_hl_f16m4(vfloat16m4_t th, vfloat16m4_t tl,
     vfloat16m4_t pm1h, vfloat16m4_t pm1l, vuint16m4_t ei, vfloat16m4_t& res, size_t vl)
 {
-    vfloat16m4_t rh, rl, zh, zl;
-    fast_2_sum_fv_f16m4(FACTOR_F16, pm1h, rh, rl, vl);
-    rl = __riscv_vfmadd_vf_f16m4(rl, FACTOR_F16, pm1l, vl);
+    vfloat16m4_t zh, zl;
+    fma12_vv_f16m4(th, pm1h, __riscv_vfmul_vf_f16m4(th, FACTOR_F16, vl), zh, zl, vl);
+    zl = __riscv_vfmadd_vf_f16m4(zl, FACTOR_F16, __riscv_vfmadd_vv_f16m4(th, pm1l,
+        __riscv_vfmadd_vv_f16m4(tl, pm1h, __riscv_vfmul_vf_f16m4(tl, FACTOR_F16, vl), vl), vl), vl);
+    zl = __riscv_vfadd_vf_f16m4(zl, 0x1p-1f16, vl);
 
-    zh = __riscv_vfmul_vv_f16m4(th, rh, vl);
-    zl = __riscv_vfmsub_vv_f16m4(th, rh, zh, vl);
-    zl = __riscv_vfmadd_vf_f16m4(zl, FACTOR_F16, __riscv_vfmadd_vv_f16m4(
-        th, rl, __riscv_vfmul_vv_f16m4(tl, rh, vl), vl), vl);
-    res = __riscv_vfmadd_vf_f16m4(zl, INV_FACTOR_F16, zh, vl);
+    ei = __riscv_vsll_vx_u16m4(__riscv_vadd_vx_u16m4(ei, (uint16_t)0x001e, vl), (size_t)9, vl);
+    vuint16m4_t shifti = __riscv_vand_vx_u16m4(ei, (uint16_t)0x0200, vl);
+    vuint16m4_t pow2e1i = __riscv_vadd_vv_u16m4(ei, shifti, vl);
+    vuint16m4_t pow2e2i = __riscv_vsub_vv_u16m4(ei, shifti, vl);
+    vfloat16m4_t pow2e1 = __riscv_vreinterpret_v_u16m4_f16m4(pow2e1i);
+    vfloat16m4_t pow2e2 = __riscv_vreinterpret_v_u16m4_f16m4(pow2e2i);
+    vfloat16m4_t invpow2e2 = __riscv_vreinterpret_v_u16m4_f16m4(__riscv_vrsub_vx_u16m4(pow2e2i, (uint16_t)0x7800, vl));
+    vfloat16m4_t pow2e1f = __riscv_vfmul_vf_f16m4(pow2e1, INV_FACTOR_F16, vl);
+    vfloat16m4_t pow2e2f = __riscv_vfmul_vf_f16m4(pow2e2, INV_FACTOR_F16, vl);
 
-    vuint16m4_t sign_ei = __riscv_vsrl_vx_u16m4(ei, (size_t)5, vl);
-    vuint16m4_t shift = __riscv_vmul_vx_u16m4(sign_ei, MAGIC_CONST_2_F16, vl);
-    vfloat16m4_t signf = __riscv_vreinterpret_v_u16m4_f16m4(__riscv_vmul_vx_u16m4(sign_ei, (uint16_t)0x3c00, vl));
-
-    vuint16m4_t pow2ei = __riscv_vadd_vv_u16m4(__riscv_vrsub_vx_u16m4(shift, FACTOR_DEG_F16, vl), ei, vl);
-    vfloat16m4_t pow2e = __riscv_vreinterpret_v_u16m4_f16m4(__riscv_vsll_vx_u16m4(pow2ei, (size_t)10, vl));
-    vfloat16m4_t factor = __riscv_vfmadd_vf_f16m4(signf, SHIFT_REC_F16, __riscv_vfrsub_vf_f16m4(signf, ONE_F16, vl), vl);
-
-    res = __riscv_vfmul_vv_f16m4(res, factor, vl);
-    res = __riscv_vfmul_vv_f16m4(res, pow2e, vl);
-
-    res = abs_f16m4(res, vl);
+    zh = __riscv_vfmul_vv_f16m4(zh, pow2e1f, vl);
+    res = __riscv_vfmul_vv_f16m4(zh, pow2e2, vl);
+    vfloat16m4_t tmp = __riscv_vfmul_vf_f16m4(__riscv_vfnmsac_vv_f16m4(zh, res, invpow2e2, vl), FACTOR_F16, vl);
+    res = __riscv_vfmacc_vv_f16m4(res, __riscv_vfmadd_vv_f16m4(zl, pow2e1f, tmp, vl), pow2e2f, vl);
 }
 
 forceinline void reconstruct_expm1_f16m4(vfloat16m4_t th, vfloat16m4_t tl,
     vfloat16m4_t pm1h, vfloat16m4_t pm1l, vuint16m4_t ei, vfloat16m4_t& res, size_t vl)
 {
+    vbool4_t mNearZero = __riscv_vmseq_vx_u16m4_b4(ei, (uint16_t)0, vl);
+
     vfloat16m4_t rh, rl, rll;
     fast_2_sum_fv_f16m4(FACTOR_F16, pm1h, rh, rl, vl);
     fast_2_sum_vv_f16m4(__riscv_vfmul_vf_f16m4(rl, FACTOR_F16, vl), pm1l, rl, rll, vl);
@@ -696,50 +617,28 @@ forceinline void reconstruct_expm1_f16m4(vfloat16m4_t th, vfloat16m4_t tl,
     rh = __riscv_vfmadd_vf_f16m4(zl, INV_FACTOR_F16, zh, vl);
     rl = __riscv_vfmadd_vf_f16m4(__riscv_vfsub_vv_f16m4(zh, rh, vl), FACTOR_F16, zl, vl);
 
+#ifndef __FAST_MATH__   
+    rl  = __riscv_vfmerge_vfm_f16m4(rl, ZERO_F16, __riscv_vmflt_vf_f16m4_b4(abs_f16m4(rl, vl), 0x1p0f16, vl), vl);
+#endif
+
     constexpr FLOAT16_T invfactore = INV_FACTOR_F16*0x1p1f16;
     vuint16m4_t pow2ei = __riscv_vsll_vx_u16m4(__riscv_vadd_vx_u16m4(ei, (uint16_t)14, vl), (size_t)10, vl);
     vfloat16m4_t pow2e = __riscv_vfmul_vf_f16m4(__riscv_vreinterpret_v_u16m4_f16m4(pow2ei), invfactore, vl);
-
-#ifndef __FAST_MATH__
-    vint16m4_t rlpower = __riscv_vsra_vx_i16m4(__riscv_vand_vx_i16m4(
-        __riscv_vreinterpret_v_f16m4_i16m4(rl), (int16_t)0x7c00, vl), (size_t)10, vl);
-    constexpr int16_t factor_signed = -FACTOR_DEG_SIGNED_F16 - (int16_t)1;
-    rlpower = __riscv_vadd_vv_i16m4(rlpower, __riscv_vadd_vx_i16m4(
-        __riscv_vreinterpret_v_u16m4_i16m4(ei), factor_signed, vl), vl);
-    rl = __riscv_vfmerge_vfm_f16m4(rl, ZERO_F16, __riscv_vmsne_vx_i16m4_b4(
-        __riscv_vand_vx_i16m4(rlpower, (int16_t)0x0020, vl), (int16_t)0, vl), vl);
-#endif
-
     rh = __riscv_vfmul_vv_f16m4(rh, pow2e, vl);
-    rl = __riscv_vfmul_vv_f16m4(rl, pow2e, vl);
 
-    vfloat16m4_t sh1, sl1, maxs, mins;
-    vbool4_t sortMask = __riscv_vmsgtu_vx_u16m4_b4(__riscv_vand_vx_u16m4(__riscv_vreinterpret_v_f16m4_u16m4(rh),
-        (uint16_t)0x7c00, vl), (uint16_t)0x3c00, vl);
-    maxs = __riscv_vfmerge_vfm_f16m4(rh, EXPM1_UNDERFLOW_VALUE_F16, __riscv_vmnot_m_b4(sortMask, vl), vl);
-    mins = __riscv_vfmerge_vfm_f16m4(rh, EXPM1_UNDERFLOW_VALUE_F16, sortMask, vl);
-    fast_2_sum_vv_f16m4(maxs, mins, sh1, sl1, vl);
+    vfloat16m4_t sh1, sl1;
+    sh1 = __riscv_vfadd_vf_f16m4(rh, EXPM1_UNDERFLOW_VALUE_F16, vl);
+    sl1 = __riscv_vfsub_vv_f16m4(sh1, rh, vl);
+    sl1 = __riscv_vfadd_vv_f16m4(__riscv_vfsub_vv_f16m4(rh, __riscv_vfsub_vv_f16m4(sh1, sl1, vl), vl),
+        __riscv_vfrsub_vf_f16m4(sl1, EXPM1_UNDERFLOW_VALUE_F16, vl), vl);
 
-    vfloat16m4_t sh2, sl2, resl;
-    fast_2_sum_vv_f16m4(__riscv_vfmul_vf_f16m4(sl1, FACTOR_F16, vl), rl, sh2, sl2, vl);
-    sl2 = __riscv_vfmadd_vf_f16m4(sl2, FACTOR_F16, rll, vl);
-
-    res = __riscv_vfmadd_vf_f16m4(sh2, INV_FACTOR_F16, sh1, vl);
-    resl = __riscv_vfmadd_vf_f16m4(__riscv_vfsub_vv_f16m4(sh1, res, vl), FACTOR_F16, sh2, vl);
-#ifndef __FAST_MATH__
-    resl = __riscv_vfadd_vf_f16m4(resl, (FLOAT16_T)0x1p-13f16, vl);
-#endif
-    resl = __riscv_vfmadd_vf_f16m4(sl2, INV_FACTOR_F16, resl, vl);
-#ifndef __FAST_MATH__
-    resl = __riscv_vfsub_vf_f16m4(resl, (FLOAT16_T)0x1p-13f16, vl);
-#endif
-    res = __riscv_vfmacc_vf_f16m4(res, INV_FACTOR_F16, resl, vl);
-}
-
-forceinline void process_linear_f16m4(vfloat16m4_t x, vfloat16m4_t& res, size_t vl)
-{
-    vbool4_t linearMask = __riscv_vmflt_vf_f16m4_b4(abs_f16m4(x, vl), EXPM1_LINEAR_THRESHOLD_F16, vl);
-    res = __riscv_vmerge_vvm_f16m4(res, x, linearMask, vl);
+    vfloat16m4_t tmp, resl;
+    tmp = __riscv_vfmadd_vv_f16m4(rl, pow2e, __riscv_vfmul_vf_f16m4(sl1, FACTOR_F16, vl), vl);
+    res = __riscv_vfmadd_vf_f16m4(tmp, INV_FACTOR_F16, sh1, vl);
+    resl = __riscv_vfmadd_vf_f16m4(__riscv_vfsub_vv_f16m4(sh1, res, vl), FACTOR_F16, tmp, vl);
+    resl = __riscv_vfmadd_vf_f16m4_mu(mNearZero, resl, FACTOR_F16, rll, vl);
+    constexpr FLOAT16_T invfactor2 = INV_FACTOR_F16*INV_FACTOR_F16;
+    res = __riscv_vfmacc_vf_f16m4_mu(mNearZero, res, invfactor2, resl, vl);
 }
 
 forceinline void process_linear_f16m4(vfloat16m4_t x, vfloat16m4_t& xc, vbool4_t& linearMask, size_t vl)
@@ -752,21 +651,5 @@ forceinline void set_fe_underflow_f16m4(vfloat16m4_t& res, size_t vl)
 {
 #ifndef __FAST_MATH__
     volatile vfloat16m4_t tmp = __riscv_vfmadd_vf_f16m4(res, (FLOAT16_T)0x1p-14f16, res, vl);
-#endif
-}
-
-forceinline void exp2_set_fe_underflow_f16m4(vfloat16m4_t x, vfloat16m4_t& res, size_t vl)
-{
-#ifndef __FAST_MATH__
-    vuint16m4_t mask = __riscv_vsrl_vx_u16m4(__riscv_vand_vx_u16m4(
-        __riscv_vreinterpret_v_f16m4_u16m4(x), (uint16_t)0x7c00, vl), (size_t)10, vl);
-    mask = __riscv_vsub_vx_u16m4(__riscv_vsll_vv_u16m4(__riscv_vmv_v_x_u16m4((uint16_t)1, vl),
-        __riscv_vrsub_vx_u16m4(mask, (uint16_t)25, vl), vl), (uint16_t)1, vl);
-    vbool4_t intMask = __riscv_vmseq_vx_u16m4_b4(
-        __riscv_vand_vv_u16m4(__riscv_vreinterpret_v_f16m4_u16m4(x), mask, vl), (uint16_t)0, vl);
-
-    vfloat16m4_t coeff = __riscv_vfmerge_vfm_f16m4(
-        __riscv_vfmv_v_f_f16m4((FLOAT16_T)0x1p-14f16, vl), ZERO_F16, intMask, vl);
-    volatile vfloat16m4_t tmp = __riscv_vfmadd_vv_f16m4(res, coeff, res, vl);
 #endif
 }

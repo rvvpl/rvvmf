@@ -92,8 +92,8 @@
 
 /* double-FP arithmetic macros */
 #define RVVMF_EXP_FAST2SUM_VV(postfix, vtype, a, b, sh, sl, vl) /* |a| > |b| */ \
-        sh = __riscv_vfadd_vv_##postfix(a, b, vl); \
-        sl = __riscv_vfsub_vv_##postfix(b, __riscv_vfsub_vv_##postfix(sh, a, vl), vl)
+    sh = __riscv_vfadd_vv_##postfix(a, b, vl); \
+    sl = __riscv_vfsub_vv_##postfix(b, __riscv_vfsub_vv_##postfix(sh, a, vl), vl)
 
 #define RVVMF_EXP_FAST2SUM_FV(postfix, vtype, a, b, sh, sl, vl) /* |a| > |b| */ \
     sh = __riscv_vfadd_vf_##postfix(b, a, vl); \
@@ -122,20 +122,24 @@
     zl = __riscv_vfmadd_vf_##postfix(ah, bh, __riscv_vfsub_vv_##postfix(ch, zh, vl), vl)
 
 #define RVVMF_EXP_FMA12_VER2P1_VF(postfix, vtype, ah, bh, ch, zh, zl, vl) /* |zh| > |ch| */ \
-    vtype __var_sh_rvvmf_exp_fma12_ver2p1_vf__, __var_sl_rvvmf_exp_fma12_ver2p1_vf__; \
     zh = __riscv_vfmadd_vf_##postfix(ah, bh, ch, vl); \
-    RVVMF_EXP_FAST2SUM_VV(postfix, vtype, __riscv_vfneg_v_##postfix(zh, vl), ch, \
-        __var_sh_rvvmf_exp_fma12_ver2p1_vf__, __var_sl_rvvmf_exp_fma12_ver2p1_vf__, vl); \
-    zl = __riscv_vfmadd_vf_##postfix(ah, bh, __var_sh_rvvmf_exp_fma12_ver2p1_vf__, vl); \
-    zl = __riscv_vfadd_vv_##postfix(zl, __var_sl_rvvmf_exp_fma12_ver2p1_vf__, vl)
+    vtype __var_sh__ = __riscv_vfsub_vv_##postfix(ch, zh, vl); \
+    vtype __var_sl__ = __riscv_vfsub_vv_##postfix(ch, __riscv_vfadd_vv_##postfix(__var_sh__, zh, vl), vl); \
+    zl = __riscv_vfmadd_vf_##postfix(ah, bh, __var_sh__, vl); \
+    zl = __riscv_vfadd_vv_##postfix(zl, __var_sl__, vl)
 
 #define RVVMF_EXP_FMA12_VER2P2_VF(postfix, vtype, ah, bh, ch, zh, zl, vl) /* |ch| > |zh| */ \
-    vtype __var_sh_rvvmf_exp_fma12_ver2p2_vf__, __var_sl_rvvmf_exp_fma12_ver2p2_vf__; \
     zh = __riscv_vfmadd_vf_##postfix(ah, bh, ch, vl); \
-    RVVMF_EXP_FAST2SUM_VV(postfix, vtype, ch, __riscv_vfneg_v_##postfix(zh, vl), \
-        __var_sh_rvvmf_exp_fma12_ver2p2_vf__, __var_sl_rvvmf_exp_fma12_ver2p2_vf__, vl); \
-    zl = __riscv_vfmadd_vf_##postfix(ah, bh, __var_sh_rvvmf_exp_fma12_ver2p2_vf__, vl); \
-    zl = __riscv_vfadd_vv_##postfix(zl, __var_sl_rvvmf_exp_fma12_ver2p2_vf__, vl)
+    vtype __var_sh__ = __riscv_vfsub_vv_##postfix(ch, zh, vl); \
+    vtype __var_sl__ = __riscv_vfsub_vv_##postfix(__riscv_vfsub_vv_##postfix(ch, __var_sh__, vl), zh, vl); \
+    zl = __riscv_vfmadd_vf_##postfix(ah, bh, __var_sh__, vl); \
+    zl = __riscv_vfadd_vv_##postfix(zl, __var_sl__, vl)
+
+
+/* utils */
+#define RVVMF_EXP_ABS(elen, lmul, x, mask, vl) \
+    __riscv_vreinterpret_v_u##elen##m##lmul##_f##elen##m##lmul(__riscv_vand_vx_u##elen##m##lmul( \
+        __riscv_vreinterpret_v_f##elen##m##lmul##_u##elen##m##lmul(x), mask, vl))
 
 
 /* utils */

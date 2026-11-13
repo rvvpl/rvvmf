@@ -53,12 +53,12 @@ vfloat64m1_t __riscv_vexp_f64m1(vfloat64m1_t x, size_t avl)
     check_special_cases_f64m1(x, special, specialMask, EXP_EXPM1_OVERFLOW_THRESHOLD_F64,
         EXP_ZERO_THRESHOLD_F64, EXP_UNDERFLOW_VALUE_F64, true, vl);
 
-    vfloat64m1_t res, yh, th, tl, pm1h, pm1l;
+    vfloat64m1_t res, yh, yl, th, tl, pm1h, pm1l;
     vuint64m1_t ei, fi;
 
-    do_exp_argument_reduction_h_f64m1(x, yh, ei, fi, vl);
+    do_exp_argument_reduction_hl_f64m1(x, yh, yl, ei, fi, vl);
     get_table_values_hl_f64m1(fi, th, tl, vl);
-    calculate_exp_polynom_hl12_f64m1(yh, pm1h, pm1l, vl);
+    calculate_exp_polynom_hl_f64m1(yh, yl, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f64m1(th, tl, pm1h, pm1l, ei, res, vl);
 
     set_fe_underflow_f64m1(res, vl);
@@ -78,12 +78,12 @@ vfloat64m2_t __riscv_vexp_f64m2(vfloat64m2_t x, size_t avl)
     check_special_cases_f64m2(x, special, specialMask, EXP_EXPM1_OVERFLOW_THRESHOLD_F64,
         EXP_ZERO_THRESHOLD_F64, EXP_UNDERFLOW_VALUE_F64, true, vl);
 
-    vfloat64m2_t res, yh, th, tl, pm1h, pm1l;
+    vfloat64m2_t res, yh, yl, th, tl, pm1h, pm1l;
     vuint64m2_t ei, fi;
 
-    do_exp_argument_reduction_h_f64m2(x, yh, ei, fi, vl);
+    do_exp_argument_reduction_hl_f64m2(x, yh, yl, ei, fi, vl);
     get_table_values_hl_f64m2(fi, th, tl, vl);
-    calculate_exp_polynom_hl12_f64m2(yh, pm1h, pm1l, vl);
+    calculate_exp_polynom_hl_f64m2(yh, yl, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f64m2(th, tl, pm1h, pm1l, ei, res, vl);
 
     set_fe_underflow_f64m2(res, vl);
@@ -103,12 +103,12 @@ vfloat64m4_t __riscv_vexp_f64m4(vfloat64m4_t x, size_t avl)
     check_special_cases_f64m4(x, special, specialMask, EXP_EXPM1_OVERFLOW_THRESHOLD_F64,
         EXP_ZERO_THRESHOLD_F64, EXP_UNDERFLOW_VALUE_F64, true, vl);
 
-    vfloat64m4_t res, yh, th, tl, pm1h, pm1l;
+    vfloat64m4_t res, yh, yl, th, tl, pm1h, pm1l;
     vuint64m4_t ei, fi;
 
-    do_exp_argument_reduction_h_f64m4(x, yh, ei, fi, vl);
+    do_exp_argument_reduction_hl_f64m4(x, yh, yl, ei, fi, vl);
     get_table_values_hl_f64m4(fi, th, tl, vl);
-    calculate_exp_polynom_hl12_f64m4(yh, pm1h, pm1l, vl);
+    calculate_exp_polynom_hl_f64m4(yh, yl, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f64m4(th, tl, pm1h, pm1l, ei, res, vl);
 
     set_fe_underflow_f64m4(res, vl);

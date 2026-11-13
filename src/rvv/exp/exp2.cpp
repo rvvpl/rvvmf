@@ -61,7 +61,7 @@ vfloat64m1_t __riscv_vexp2_f64m1(vfloat64m1_t x, size_t avl)
     calculate_exp2_polynom_hl12_f64m1(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f64m1(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f64m1(x, res, vl);
+    set_fe_underflow_f64m1(res, vl);
     res = __riscv_vmerge_vvm_f64m1(res, special, specialMask, vl);
 
     return res;
@@ -86,7 +86,7 @@ vfloat64m2_t __riscv_vexp2_f64m2(vfloat64m2_t x, size_t avl)
     calculate_exp2_polynom_hl12_f64m2(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f64m2(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f64m2(x, res, vl);
+    set_fe_underflow_f64m2(res, vl);
     res = __riscv_vmerge_vvm_f64m2(res, special, specialMask, vl);
 
     return res;
@@ -111,7 +111,7 @@ vfloat64m4_t __riscv_vexp2_f64m4(vfloat64m4_t x, size_t avl)
     calculate_exp2_polynom_hl12_f64m4(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f64m4(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f64m4(x, res, vl);
+    set_fe_underflow_f64m4(res, vl);
     res = __riscv_vmerge_vvm_f64m4(res, special, specialMask, vl);
 
     return res;
@@ -158,7 +158,7 @@ vfloat32m1_t __riscv_vexp2_f32m1(vfloat32m1_t x, size_t avl)
     calculate_exp2_polynom_hl12_f32m1(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f32m1(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f32m1(x, res, vl);
+    set_fe_underflow_f32m1(res, vl);
     res = __riscv_vmerge_vvm_f32m1(res, special, specialMask, vl);
 
     return res;
@@ -183,7 +183,7 @@ vfloat32m2_t __riscv_vexp2_f32m2(vfloat32m2_t x, size_t avl)
     calculate_exp2_polynom_hl12_f32m2(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f32m2(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f32m2(x, res, vl);
+    set_fe_underflow_f32m2(res, vl);
     res = __riscv_vmerge_vvm_f32m2(res, special, specialMask, vl);
 
     return res;
@@ -208,7 +208,7 @@ vfloat32m4_t __riscv_vexp2_f32m4(vfloat32m4_t x, size_t avl)
     calculate_exp2_polynom_hl12_f32m4(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f32m4(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f32m4(x, res, vl);
+    set_fe_underflow_f32m4(res, vl);
     res = __riscv_vmerge_vvm_f32m4(res, special, specialMask, vl);
 
     return res;
@@ -258,7 +258,7 @@ vfloat16m1_t __riscv_vexp2_f16m1(vfloat16m1_t x, size_t avl)
     calculate_exp2_polynom_hl12_f16m1(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f16m1(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f16m1(x, res, vl);
+    set_fe_underflow_f16m1(res, vl);
     res = __riscv_vmerge_vvm_f16m1(res, special, specialMask, vl);
 
     return res;
@@ -283,7 +283,7 @@ vfloat16m2_t __riscv_vexp2_f16m2(vfloat16m2_t x, size_t avl)
     calculate_exp2_polynom_hl12_f16m2(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f16m2(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f16m2(x, res, vl);
+    set_fe_underflow_f16m2(res, vl);
     res = __riscv_vmerge_vvm_f16m2(res, special, specialMask, vl);
 
     return res;
@@ -308,7 +308,7 @@ vfloat16m4_t __riscv_vexp2_f16m4(vfloat16m4_t x, size_t avl)
     calculate_exp2_polynom_hl12_f16m4(yh, pm1h, pm1l, vl);
     reconstruct_exp_hl_hl_f16m4(th, tl, pm1h, pm1l, ei, res, vl);
 
-    exp2_set_fe_underflow_f16m4(x, res, vl);
+    set_fe_underflow_f16m4(res, vl);
     res = __riscv_vmerge_vvm_f16m4(res, special, specialMask, vl);
 
     return res;

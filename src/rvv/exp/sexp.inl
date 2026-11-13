@@ -41,15 +41,15 @@ constexpr float EXP2_TABLE_SIZE_DEG_F32 = 0x1p4f;
 constexpr float M_EXP2_M_TABLE_SIZE_DEG_F32 = -0x1p-4f;
 constexpr uint32_t MASK_FI_BIT_F32 = 0x0000000f;
 constexpr uint32_t MASK_HI_BIT_F32 = 0x00001fff;
-constexpr float MAGIC_CONST_1_F32 = 12582912.0f;    // 1.5*2^23
+constexpr float MAGIC_CONST_1_F32 = 12582912.0f;        // 1.5*2^23
 constexpr float INV_LOG2_2K_F32 = 0x1.715476p4f;
 constexpr float M_LOG2_2K_H_F32 = -0x1.62ep-5f;
 constexpr float M_LOG2_2K_L_F32 = -0x1.0bfbe8p-19f;
 constexpr float M_LOG2_2K_LL_F32 = -0x1.cf79acp-44f;
 
-constexpr uint32_t FACTOR_DEG_F32 = 127 - 57;
-constexpr uint32_t MAGIC_CONST_2_F32 = 0x000001af;  // uint9_t(-24-57)
 constexpr float FACTOR_F32 = 0x1p57f;
+constexpr uint32_t BIAS_FACTOR_EXP_F32 = 0x31400000;    // (254 - 57) << 22
+constexpr uint32_t BIAS_FACTOR_EXPM1_F32 = 0x23000000;  // (127 - 57) << 23
 constexpr float SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32 = 0x1p-41f;
 
 static const float LOOK_UP_TABLE_HIGH_F32[16] = {
@@ -123,7 +123,6 @@ forceinline void do_exp_argument_reduction_hl_f32m1(vfloat32m1_t x,
     h = __riscv_vfsub_vv_f32m1(h, vmagicConst1, vl);
     fma12_vf_f32m1(h, M_LOG2_2K_L_F32, __riscv_vfmadd_vf_f32m1(h, M_LOG2_2K_H_F32, x, vl), yh, yl, vl);
     yl = __riscv_vfmacc_vf_f32m1(yl, M_LOG2_2K_LL_F32, h, vl);
-    fast_2_sum_vv_f32m1(yh, yl, yh, yl, vl);
 }
 
 forceinline void do_exp2_argument_reduction_f32m1(vfloat32m1_t x, vfloat32m1_t& y,
@@ -141,7 +140,7 @@ forceinline void do_exp2_argument_reduction_f32m1(vfloat32m1_t x, vfloat32m1_t& 
 forceinline void get_table_values_hl_f32m1(
     vuint32m1_t& index, vfloat32m1_t& th, vfloat32m1_t& tl, size_t vl)
 {
-    index = __riscv_vmul_vx_u32m1(index, uint32_t(sizeof(float)), vl);
+    index = __riscv_vsll_vx_u32m1(index, (size_t)2, vl);
     th = __riscv_vloxei32_v_f32m1(LOOK_UP_TABLE_HIGH_F32, index, vl);
     tl = __riscv_vloxei32_v_f32m1(LOOK_UP_TABLE_LOW_F32, index, vl);
 }
@@ -149,11 +148,15 @@ forceinline void get_table_values_hl_f32m1(
 forceinline void calculate_exp_polynom_hl_f32m1(vfloat32m1_t yh, vfloat32m1_t yl,
     vfloat32m1_t& ph, vfloat32m1_t& pl, size_t vl)
 {
+#ifndef __FAST_MATH__
     vfloat32m1_t yhs = __riscv_vfadd_vf_f32m1(yh, SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32, vl);
+#else
+    vfloat32m1_t yhs = yh;
+#endif
     vfloat32m1_t sqryh = __riscv_vfmul_vv_f32m1(yhs, yhs, vl);
     vfloat32m1_t r = calc_polynom_deg_2_f32m1(yh, EXP_POL_COEFF_2_F32, EXP_POL_COEFF_3_F32, EXP_POL_COEFF_4_F32, vl);
     fma12_vv_f32m1(sqryh, r, __riscv_vfmul_vf_f32m1(yh, FACTOR_F32, vl), ph, pl, vl);
-    pl = __riscv_vfadd_vv_f32m1(pl, __riscv_vfmul_vf_f32m1(yl, FACTOR_F32, vl), vl);
+    pl = __riscv_vfmacc_vf_f32m1(pl, FACTOR_F32, yl, vl);
 }
 
 forceinline void calculate_expm1_polynom_hl_f32m1(vfloat32m1_t yh, vfloat32m1_t yl,
@@ -162,13 +165,17 @@ forceinline void calculate_expm1_polynom_hl_f32m1(vfloat32m1_t yh, vfloat32m1_t 
     vfloat32m1_t sqryh = __riscv_vfmul_vv_f32m1(yh, yh, vl);
     vfloat32m1_t r = calc_polynom_deg_2_f32m1(yh, EXP_POL_COEFF_2_F32, EXP_POL_COEFF_3_F32, EXP_POL_COEFF_4_F32, vl);
     fma12_vv_f32m1(sqryh, r, __riscv_vfmul_vf_f32m1(yh, FACTOR_F32, vl), ph, pl, vl);
-    pl = __riscv_vfadd_vv_f32m1(pl, __riscv_vfmul_vf_f32m1(yl, FACTOR_F32, vl), vl);
+    pl = __riscv_vfmacc_vf_f32m1(pl, FACTOR_F32, yl, vl);
 }
 
 forceinline void calculate_exp2_polynom_hl12_f32m1(vfloat32m1_t yh,
     vfloat32m1_t& ph, vfloat32m1_t& pl, size_t vl)
 {
+#ifndef __FAST_MATH__
     vfloat32m1_t yhs = __riscv_vfadd_vf_f32m1(yh, SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32, vl);
+#else
+    vfloat32m1_t yhs = yh;
+#endif
     vfloat32m1_t sqryh = __riscv_vfmul_vv_f32m1(yhs, yhs, vl);
     vfloat32m1_t r = calc_polynom_deg_2_f32m1(yh, EXP2_POL_COEFF_2_F32, EXP2_POL_COEFF_3_F32, EXP2_POL_COEFF_4_F32, vl);
     fma12_ver2p1_vf_f32m1(yh, EXP2_POL_COEFF_1_F32, __riscv_vfmul_vv_f32m1(sqryh, r, vl), ph, pl, vl);
@@ -177,50 +184,52 @@ forceinline void calculate_exp2_polynom_hl12_f32m1(vfloat32m1_t yh,
 forceinline void reconstruct_exp_hl_hl_f32m1(vfloat32m1_t th, vfloat32m1_t tl,
     vfloat32m1_t pm1h, vfloat32m1_t pm1l, vuint32m1_t ei, vfloat32m1_t& res, size_t vl)
 {
-    vfloat32m1_t sh, sl, sl1;
-    fast_2_sum_fv_f32m1(FACTOR_F32, pm1h, sh, sl1, vl);
-    sl = __riscv_vfadd_vv_f32m1(sl1, pm1l, vl);
-    mul21_vv_f32m1(th, tl, sh, sl, res, vl);
+    vfloat32m1_t zh, zl;
+    fma12_vv_f32m1(th, pm1h, __riscv_vfmul_vf_f32m1(th, FACTOR_F32, vl), zh, zl, vl);
+    zl = __riscv_vfadd_vv_f32m1(zl, __riscv_vfmadd_vv_f32m1(th, pm1l,
+        __riscv_vfmadd_vv_f32m1(tl, pm1h, __riscv_vfmul_vf_f32m1(tl, FACTOR_F32, vl), vl), vl), vl);
 
-    vuint32m1_t sign_ei = __riscv_vsrl_vx_u32m1(ei, (size_t)8, vl);
-    vuint32m1_t shift = __riscv_vmul_vx_u32m1(sign_ei, MAGIC_CONST_2_F32, vl);
+    ei = __riscv_vadd_vx_u32m1(__riscv_vsll_vx_u32m1(ei, (size_t)22, vl), BIAS_FACTOR_EXP_F32, vl);
+    vuint32m1_t shifti = __riscv_vand_vx_u32m1(ei, (uint32_t)0x00400000, vl);
+    vuint32m1_t pow2e1i = __riscv_vadd_vv_u32m1(ei, shifti, vl);
+    vuint32m1_t pow2e2i = __riscv_vsub_vv_u32m1(ei, shifti, vl);
+    vuint32m1_t invpow2e2i = __riscv_vrsub_vx_u32m1(pow2e2i, (uint32_t)0x7f000000, vl);
 
-    vuint32m1_t pow2ei = __riscv_vadd_vv_u32m1(__riscv_vrsub_vx_u32m1(shift, FACTOR_DEG_F32, vl), ei, vl);
-    pow2ei = __riscv_vsll_vx_u32m1(pow2ei, (size_t)23, vl);
-    vuint32m1_t factori = __riscv_vadd_vx_u32m1(shift, (uint32_t)127, vl);
-    factori = __riscv_vsll_vx_u32m1(factori, (size_t)23, vl);
+    vfloat32m1_t pow2e1 = __riscv_vreinterpret_v_u32m1_f32m1(pow2e1i);
+    vfloat32m1_t pow2e2 = __riscv_vreinterpret_v_u32m1_f32m1(pow2e2i);
+    vfloat32m1_t invpow2e2 = __riscv_vreinterpret_v_u32m1_f32m1(invpow2e2i);
 
-    res = __riscv_vfmul_vv_f32m1(res, __riscv_vreinterpret_v_u32m1_f32m1(pow2ei), vl);
-    res = __riscv_vfmul_vv_f32m1(res, __riscv_vreinterpret_v_u32m1_f32m1(factori), vl);
-
-    res = abs_f32m1(res, vl);
+    zh = __riscv_vfmul_vv_f32m1(zh, pow2e1, vl);
+    res = __riscv_vfmul_vv_f32m1(zh, pow2e2, vl);
+    zl = __riscv_vfmadd_vv_f32m1(zl, pow2e1, __riscv_vfnmsac_vv_f32m1(zh, res, invpow2e2, vl), vl);
+    res = __riscv_vfmacc_vv_f32m1(res, zl, pow2e2, vl);
 }
 
 forceinline void reconstruct_expm1_f32m1(vfloat32m1_t th, vfloat32m1_t tl,
     vfloat32m1_t pm1h, vfloat32m1_t pm1l, vuint32m1_t ei, vfloat32m1_t& res, size_t vl)
 {
+    vbool32_t mNearZero = __riscv_vmseq_vx_u32m1_b32(ei, (uint32_t)0, vl);
+
     vfloat32m1_t rh, rl, rll;
     fast_2_sum_fv_f32m1(FACTOR_F32, pm1h, rh, rl, vl);
     fast_2_sum_vv_f32m1(rl, pm1l, rl, rll, vl);
     mul22_vv_f32m1(th, tl, rh, rl, rh, rl, vl);
 
-    vuint32m1_t pow2ei = __riscv_vsll_vx_u32m1(__riscv_vadd_vx_u32m1(ei, FACTOR_DEG_F32, vl), (size_t)23, vl);
-    rh = __riscv_vfmul_vv_f32m1(rh, __riscv_vreinterpret_v_u32m1_f32m1(pow2ei), vl);
-    rl = __riscv_vfmul_vv_f32m1(rl, __riscv_vreinterpret_v_u32m1_f32m1(pow2ei), vl);
-    rll = __riscv_vfmul_vv_f32m1(rll, __riscv_vreinterpret_v_u32m1_f32m1(pow2ei), vl);
+    ei = __riscv_vsll_vx_u32m1(ei, (size_t)23, vl);
+    vfloat32m1_t pow2e = __riscv_vreinterpret_v_u32m1_f32m1(__riscv_vadd_vx_u32m1(ei, BIAS_FACTOR_EXPM1_F32, vl));
+    rh = __riscv_vfmul_vv_f32m1(rh, pow2e, vl);
 
-    vfloat32m1_t sh1, sl1, maxs, mins;
-    vbool32_t sortMask = __riscv_vmsgtu_vx_u32m1_b32(__riscv_vand_vx_u32m1(
-        __riscv_vreinterpret_v_f32m1_u32m1(rh), (uint32_t)0x7f800000, vl), (uint32_t)0x3f800000, vl);
-    maxs = __riscv_vfmerge_vfm_f32m1(rh, EXPM1_UNDERFLOW_VALUE_F32, __riscv_vmnot_m_b32(sortMask, vl), vl);
-    mins = __riscv_vfmerge_vfm_f32m1(rh, EXPM1_UNDERFLOW_VALUE_F32, sortMask, vl);
-    fast_2_sum_vv_f32m1(maxs, mins, sh1, sl1, vl);
+    vfloat32m1_t sh1, sl1;
+    sh1 = __riscv_vfadd_vf_f32m1(rh, EXPM1_UNDERFLOW_VALUE_F32, vl);
+    sl1 = __riscv_vfsub_vv_f32m1(sh1, rh, vl);
+    sl1 = __riscv_vfadd_vv_f32m1(__riscv_vfsub_vv_f32m1(rh, __riscv_vfsub_vv_f32m1(sh1, sl1, vl), vl),
+        __riscv_vfrsub_vf_f32m1(sl1, EXPM1_UNDERFLOW_VALUE_F32, vl), vl);
 
-    vfloat32m1_t sh2, sl2, resl;
-    sl2 = __riscv_vfadd_vv_f32m1(sl1, rll, vl);
-    fast_2_sum_vv_f32m1(rl, sl2, sh2, sl2, vl);
-    fast_2_sum_vv_f32m1(sh1, sh2, res, resl, vl);
-    res = __riscv_vfadd_vv_f32m1(res, __riscv_vfadd_vv_f32m1(resl, sl2, vl), vl);
+    vfloat32m1_t tmp, resl;
+    tmp = __riscv_vfmadd_vv_f32m1(rl, pow2e, sl1, vl);
+    fast_2_sum_vv_f32m1(sh1, tmp, res, resl, vl);
+    resl = __riscv_vfmacc_vv_f32m1_mu(mNearZero, resl, pow2e, rll, vl);
+    res = __riscv_vfadd_vv_f32m1_mu(mNearZero, res, res, resl, vl);
 }
 
 forceinline void process_linear_f32m1(vfloat32m1_t x, vfloat32m1_t& xc, vbool32_t& linearMask, size_t vl)
@@ -233,22 +242,6 @@ forceinline void set_fe_underflow_f32m1(vfloat32m1_t& res, size_t vl)
 {
 #ifndef __FAST_MATH__
     res = __riscv_vfmadd_vf_f32m1(res, (float)0x1p-26f, res, vl);
-#endif
-}
-
-forceinline void exp2_set_fe_underflow_f32m1(vfloat32m1_t x, vfloat32m1_t& res, size_t vl)
-{
-#ifndef __FAST_MATH__
-    vuint32m1_t mask = __riscv_vsrl_vx_u32m1(__riscv_vand_vx_u32m1(
-        __riscv_vreinterpret_v_f32m1_u32m1(x), (uint32_t)0x7f800000, vl), (size_t)23, vl);
-    mask = __riscv_vsub_vx_u32m1(__riscv_vsll_vv_u32m1(__riscv_vmv_v_x_u32m1((uint32_t)1, vl),
-        __riscv_vrsub_vx_u32m1(mask, (uint32_t)150, vl), vl), (uint32_t)1, vl);
-    vbool32_t intMask = __riscv_vmseq_vx_u32m1_b32(
-        __riscv_vand_vv_u32m1(__riscv_vreinterpret_v_f32m1_u32m1(x), mask, vl), (uint32_t)0, vl);
-
-    vfloat32m1_t coeff = __riscv_vfmerge_vfm_f32m1(
-        __riscv_vfmv_v_f_f32m1((float)0x1p-26f, vl), ZERO_F32, intMask, vl);
-    res = __riscv_vfmadd_vv_f32m1(res, coeff, res, vl);
 #endif
 }
 
@@ -301,7 +294,6 @@ forceinline void do_exp_argument_reduction_hl_f32m2(vfloat32m2_t x,
     h = __riscv_vfsub_vv_f32m2(h, vmagicConst1, vl);
     fma12_vf_f32m2(h, M_LOG2_2K_L_F32, __riscv_vfmadd_vf_f32m2(h, M_LOG2_2K_H_F32, x, vl), yh, yl, vl);
     yl = __riscv_vfmacc_vf_f32m2(yl, M_LOG2_2K_LL_F32, h, vl);
-    fast_2_sum_vv_f32m2(yh, yl, yh, yl, vl);
 }
 
 forceinline void do_exp2_argument_reduction_f32m2(vfloat32m2_t x, vfloat32m2_t& y,
@@ -319,7 +311,7 @@ forceinline void do_exp2_argument_reduction_f32m2(vfloat32m2_t x, vfloat32m2_t& 
 forceinline void get_table_values_hl_f32m2(
     vuint32m2_t& index, vfloat32m2_t& th, vfloat32m2_t& tl, size_t vl)
 {
-    index = __riscv_vmul_vx_u32m2(index, uint32_t(sizeof(float)), vl);
+    index = __riscv_vsll_vx_u32m2(index, (size_t)2, vl);
     th = __riscv_vloxei32_v_f32m2(LOOK_UP_TABLE_HIGH_F32, index, vl);
     tl = __riscv_vloxei32_v_f32m2(LOOK_UP_TABLE_LOW_F32, index, vl);
 }
@@ -327,11 +319,15 @@ forceinline void get_table_values_hl_f32m2(
 forceinline void calculate_exp_polynom_hl_f32m2(vfloat32m2_t yh, vfloat32m2_t yl,
     vfloat32m2_t& ph, vfloat32m2_t& pl, size_t vl)
 {
+#ifndef __FAST_MATH__
     vfloat32m2_t yhs = __riscv_vfadd_vf_f32m2(yh, SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32, vl);
+#else
+    vfloat32m2_t yhs = yh;
+#endif
     vfloat32m2_t sqryh = __riscv_vfmul_vv_f32m2(yhs, yhs, vl);
     vfloat32m2_t r = calc_polynom_deg_2_f32m2(yh, EXP_POL_COEFF_2_F32, EXP_POL_COEFF_3_F32, EXP_POL_COEFF_4_F32, vl);
     fma12_vv_f32m2(sqryh, r, __riscv_vfmul_vf_f32m2(yh, FACTOR_F32, vl), ph, pl, vl);
-    pl = __riscv_vfadd_vv_f32m2(pl, __riscv_vfmul_vf_f32m2(yl, FACTOR_F32, vl), vl);
+    pl = __riscv_vfmacc_vf_f32m2(pl, FACTOR_F32, yl, vl);
 }
 
 forceinline void calculate_expm1_polynom_hl_f32m2(vfloat32m2_t yh, vfloat32m2_t yl,
@@ -340,13 +336,17 @@ forceinline void calculate_expm1_polynom_hl_f32m2(vfloat32m2_t yh, vfloat32m2_t 
     vfloat32m2_t sqryh = __riscv_vfmul_vv_f32m2(yh, yh, vl);
     vfloat32m2_t r = calc_polynom_deg_2_f32m2(yh, EXP_POL_COEFF_2_F32, EXP_POL_COEFF_3_F32, EXP_POL_COEFF_4_F32, vl);
     fma12_vv_f32m2(sqryh, r, __riscv_vfmul_vf_f32m2(yh, FACTOR_F32, vl), ph, pl, vl);
-    pl = __riscv_vfadd_vv_f32m2(pl, __riscv_vfmul_vf_f32m2(yl, FACTOR_F32, vl), vl);
+    pl = __riscv_vfmacc_vf_f32m2(pl, FACTOR_F32, yl, vl);
 }
 
 forceinline void calculate_exp2_polynom_hl12_f32m2(vfloat32m2_t yh,
     vfloat32m2_t& ph, vfloat32m2_t& pl, size_t vl)
 {
+#ifndef __FAST_MATH__
     vfloat32m2_t yhs = __riscv_vfadd_vf_f32m2(yh, SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32, vl);
+#else
+    vfloat32m2_t yhs = yh;
+#endif
     vfloat32m2_t sqryh = __riscv_vfmul_vv_f32m2(yhs, yhs, vl);
     vfloat32m2_t r = calc_polynom_deg_2_f32m2(yh, EXP2_POL_COEFF_2_F32, EXP2_POL_COEFF_3_F32, EXP2_POL_COEFF_4_F32, vl);
     fma12_ver2p1_vf_f32m2(yh, EXP2_POL_COEFF_1_F32, __riscv_vfmul_vv_f32m2(sqryh, r, vl), ph, pl, vl);
@@ -355,50 +355,52 @@ forceinline void calculate_exp2_polynom_hl12_f32m2(vfloat32m2_t yh,
 forceinline void reconstruct_exp_hl_hl_f32m2(vfloat32m2_t th, vfloat32m2_t tl,
     vfloat32m2_t pm1h, vfloat32m2_t pm1l, vuint32m2_t ei, vfloat32m2_t& res, size_t vl)
 {
-    vfloat32m2_t sh, sl, sl1;
-    fast_2_sum_fv_f32m2(FACTOR_F32, pm1h, sh, sl1, vl);
-    sl = __riscv_vfadd_vv_f32m2(sl1, pm1l, vl);
-    mul21_vv_f32m2(th, tl, sh, sl, res, vl);
+    vfloat32m2_t zh, zl;
+    fma12_vv_f32m2(th, pm1h, __riscv_vfmul_vf_f32m2(th, FACTOR_F32, vl), zh, zl, vl);
+    zl = __riscv_vfadd_vv_f32m2(zl, __riscv_vfmadd_vv_f32m2(th, pm1l,
+        __riscv_vfmadd_vv_f32m2(tl, pm1h, __riscv_vfmul_vf_f32m2(tl, FACTOR_F32, vl), vl), vl), vl);
 
-    vuint32m2_t sign_ei = __riscv_vsrl_vx_u32m2(ei, (size_t)8, vl);
-    vuint32m2_t shift = __riscv_vmul_vx_u32m2(sign_ei, MAGIC_CONST_2_F32, vl);
+    ei = __riscv_vadd_vx_u32m2(__riscv_vsll_vx_u32m2(ei, (size_t)22, vl), BIAS_FACTOR_EXP_F32, vl);
+    vuint32m2_t shifti = __riscv_vand_vx_u32m2(ei, (uint32_t)0x00400000, vl);
+    vuint32m2_t pow2e1i = __riscv_vadd_vv_u32m2(ei, shifti, vl);
+    vuint32m2_t pow2e2i = __riscv_vsub_vv_u32m2(ei, shifti, vl);
+    vuint32m2_t invpow2e2i = __riscv_vrsub_vx_u32m2(pow2e2i, (uint32_t)0x7f000000, vl);
 
-    vuint32m2_t pow2ei = __riscv_vadd_vv_u32m2(__riscv_vrsub_vx_u32m2(shift, FACTOR_DEG_F32, vl), ei, vl);
-    pow2ei = __riscv_vsll_vx_u32m2(pow2ei, (size_t)23, vl);
-    vuint32m2_t factori = __riscv_vadd_vx_u32m2(shift, (uint32_t)127, vl);
-    factori = __riscv_vsll_vx_u32m2(factori, (size_t)23, vl);
+    vfloat32m2_t pow2e1 = __riscv_vreinterpret_v_u32m2_f32m2(pow2e1i);
+    vfloat32m2_t pow2e2 = __riscv_vreinterpret_v_u32m2_f32m2(pow2e2i);
+    vfloat32m2_t invpow2e2 = __riscv_vreinterpret_v_u32m2_f32m2(invpow2e2i);
 
-    res = __riscv_vfmul_vv_f32m2(res, __riscv_vreinterpret_v_u32m2_f32m2(pow2ei), vl);
-    res = __riscv_vfmul_vv_f32m2(res, __riscv_vreinterpret_v_u32m2_f32m2(factori), vl);
-
-    res = abs_f32m2(res, vl);
+    zh = __riscv_vfmul_vv_f32m2(zh, pow2e1, vl);
+    res = __riscv_vfmul_vv_f32m2(zh, pow2e2, vl);
+    zl = __riscv_vfmadd_vv_f32m2(zl, pow2e1, __riscv_vfnmsac_vv_f32m2(zh, res, invpow2e2, vl), vl);
+    res = __riscv_vfmacc_vv_f32m2(res, zl, pow2e2, vl);
 }
 
 forceinline void reconstruct_expm1_f32m2(vfloat32m2_t th, vfloat32m2_t tl,
     vfloat32m2_t pm1h, vfloat32m2_t pm1l, vuint32m2_t ei, vfloat32m2_t& res, size_t vl)
 {
+    vbool16_t mNearZero = __riscv_vmseq_vx_u32m2_b16(ei, (uint32_t)0, vl);
+
     vfloat32m2_t rh, rl, rll;
     fast_2_sum_fv_f32m2(FACTOR_F32, pm1h, rh, rl, vl);
     fast_2_sum_vv_f32m2(rl, pm1l, rl, rll, vl);
     mul22_vv_f32m2(th, tl, rh, rl, rh, rl, vl);
 
-    vuint32m2_t pow2ei = __riscv_vsll_vx_u32m2(__riscv_vadd_vx_u32m2(ei, FACTOR_DEG_F32, vl), (size_t)23, vl);
-    rh = __riscv_vfmul_vv_f32m2(rh, __riscv_vreinterpret_v_u32m2_f32m2(pow2ei), vl);
-    rl = __riscv_vfmul_vv_f32m2(rl, __riscv_vreinterpret_v_u32m2_f32m2(pow2ei), vl);
-    rll = __riscv_vfmul_vv_f32m2(rll, __riscv_vreinterpret_v_u32m2_f32m2(pow2ei), vl);
+    ei = __riscv_vsll_vx_u32m2(ei, (size_t)23, vl);
+    vfloat32m2_t pow2e = __riscv_vreinterpret_v_u32m2_f32m2(__riscv_vadd_vx_u32m2(ei, BIAS_FACTOR_EXPM1_F32, vl));
+    rh = __riscv_vfmul_vv_f32m2(rh, pow2e, vl);
 
-    vfloat32m2_t sh1, sl1, maxs, mins;
-    vbool16_t sortMask = __riscv_vmsgtu_vx_u32m2_b16(__riscv_vand_vx_u32m2(
-        __riscv_vreinterpret_v_f32m2_u32m2(rh), (uint32_t)0x7f800000, vl), (uint32_t)0x3f800000, vl);
-    maxs = __riscv_vfmerge_vfm_f32m2(rh, EXPM1_UNDERFLOW_VALUE_F32, __riscv_vmnot_m_b16(sortMask, vl), vl);
-    mins = __riscv_vfmerge_vfm_f32m2(rh, EXPM1_UNDERFLOW_VALUE_F32, sortMask, vl);
-    fast_2_sum_vv_f32m2(maxs, mins, sh1, sl1, vl);
+    vfloat32m2_t sh1, sl1;
+    sh1 = __riscv_vfadd_vf_f32m2(rh, EXPM1_UNDERFLOW_VALUE_F32, vl);
+    sl1 = __riscv_vfsub_vv_f32m2(sh1, rh, vl);
+    sl1 = __riscv_vfadd_vv_f32m2(__riscv_vfsub_vv_f32m2(rh, __riscv_vfsub_vv_f32m2(sh1, sl1, vl), vl),
+        __riscv_vfrsub_vf_f32m2(sl1, EXPM1_UNDERFLOW_VALUE_F32, vl), vl);
 
-    vfloat32m2_t sh2, sl2, resl;
-    sl2 = __riscv_vfadd_vv_f32m2(sl1, rll, vl);
-    fast_2_sum_vv_f32m2(rl, sl2, sh2, sl2, vl);
-    fast_2_sum_vv_f32m2(sh1, sh2, res, resl, vl);
-    res = __riscv_vfadd_vv_f32m2(res, __riscv_vfadd_vv_f32m2(resl, sl2, vl), vl);
+    vfloat32m2_t tmp, resl;
+    tmp = __riscv_vfmadd_vv_f32m2(rl, pow2e, sl1, vl);
+    fast_2_sum_vv_f32m2(sh1, tmp, res, resl, vl);
+    resl = __riscv_vfmacc_vv_f32m2_mu(mNearZero, resl, pow2e, rll, vl);
+    res = __riscv_vfadd_vv_f32m2_mu(mNearZero, res, res, resl, vl);
 }
 
 forceinline void process_linear_f32m2(vfloat32m2_t x, vfloat32m2_t& xc, vbool16_t& linearMask, size_t vl)
@@ -411,22 +413,6 @@ forceinline void set_fe_underflow_f32m2(vfloat32m2_t& res, size_t vl)
 {
 #ifndef __FAST_MATH__
     res = __riscv_vfmadd_vf_f32m2(res, (float)0x1p-26f, res, vl);
-#endif
-}
-
-forceinline void exp2_set_fe_underflow_f32m2(vfloat32m2_t x, vfloat32m2_t& res, size_t vl)
-{
-#ifndef __FAST_MATH__
-    vuint32m2_t mask = __riscv_vsrl_vx_u32m2(__riscv_vand_vx_u32m2(
-        __riscv_vreinterpret_v_f32m2_u32m2(x), (uint32_t)0x7f800000, vl), (size_t)23, vl);
-    mask = __riscv_vsub_vx_u32m2(__riscv_vsll_vv_u32m2(__riscv_vmv_v_x_u32m2((uint32_t)1, vl),
-        __riscv_vrsub_vx_u32m2(mask, (uint32_t)150, vl), vl), (uint32_t)1, vl);
-    vbool16_t intMask = __riscv_vmseq_vx_u32m2_b16(
-        __riscv_vand_vv_u32m2(__riscv_vreinterpret_v_f32m2_u32m2(x), mask, vl), (uint32_t)0, vl);
-
-    vfloat32m2_t coeff = __riscv_vfmerge_vfm_f32m2(
-        __riscv_vfmv_v_f_f32m2((float)0x1p-26f, vl), ZERO_F32, intMask, vl);
-    res = __riscv_vfmadd_vv_f32m2(res, coeff, res, vl);
 #endif
 }
 
@@ -479,7 +465,6 @@ forceinline void do_exp_argument_reduction_hl_f32m4(vfloat32m4_t x,
     h = __riscv_vfsub_vv_f32m4(h, vmagicConst1, vl);
     fma12_vf_f32m4(h, M_LOG2_2K_L_F32, __riscv_vfmadd_vf_f32m4(h, M_LOG2_2K_H_F32, x, vl), yh, yl, vl);
     yl = __riscv_vfmacc_vf_f32m4(yl, M_LOG2_2K_LL_F32, h, vl);
-    fast_2_sum_vv_f32m4(yh, yl, yh, yl, vl);
 }
 
 forceinline void do_exp2_argument_reduction_f32m4(vfloat32m4_t x, vfloat32m4_t& y,
@@ -497,7 +482,7 @@ forceinline void do_exp2_argument_reduction_f32m4(vfloat32m4_t x, vfloat32m4_t& 
 forceinline void get_table_values_hl_f32m4(
     vuint32m4_t& index, vfloat32m4_t& th, vfloat32m4_t& tl, size_t vl)
 {
-    index = __riscv_vmul_vx_u32m4(index, uint32_t(sizeof(float)), vl);
+    index = __riscv_vsll_vx_u32m4(index, (size_t)2, vl);
     th = __riscv_vloxei32_v_f32m4(LOOK_UP_TABLE_HIGH_F32, index, vl);
     tl = __riscv_vloxei32_v_f32m4(LOOK_UP_TABLE_LOW_F32, index, vl);
 }
@@ -505,11 +490,15 @@ forceinline void get_table_values_hl_f32m4(
 forceinline void calculate_exp_polynom_hl_f32m4(vfloat32m4_t yh, vfloat32m4_t yl,
     vfloat32m4_t& ph, vfloat32m4_t& pl, size_t vl)
 {
+#ifndef __FAST_MATH__
     vfloat32m4_t yhs = __riscv_vfadd_vf_f32m4(yh, SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32, vl);
+#else
+    vfloat32m4_t yhs = yh;
+#endif
     vfloat32m4_t sqryh = __riscv_vfmul_vv_f32m4(yhs, yhs, vl);
     vfloat32m4_t r = calc_polynom_deg_2_f32m4(yh, EXP_POL_COEFF_2_F32, EXP_POL_COEFF_3_F32, EXP_POL_COEFF_4_F32, vl);
     fma12_vv_f32m4(sqryh, r, __riscv_vfmul_vf_f32m4(yh, FACTOR_F32, vl), ph, pl, vl);
-    pl = __riscv_vfadd_vv_f32m4(pl, __riscv_vfmul_vf_f32m4(yl, FACTOR_F32, vl), vl);
+    pl = __riscv_vfmacc_vf_f32m4(pl, FACTOR_F32, yl, vl);
 }
 
 forceinline void calculate_expm1_polynom_hl_f32m4(vfloat32m4_t yh, vfloat32m4_t yl,
@@ -518,13 +507,17 @@ forceinline void calculate_expm1_polynom_hl_f32m4(vfloat32m4_t yh, vfloat32m4_t 
     vfloat32m4_t sqryh = __riscv_vfmul_vv_f32m4(yh, yh, vl);
     vfloat32m4_t r = calc_polynom_deg_2_f32m4(yh, EXP_POL_COEFF_2_F32, EXP_POL_COEFF_3_F32, EXP_POL_COEFF_4_F32, vl);
     fma12_vv_f32m4(sqryh, r, __riscv_vfmul_vf_f32m4(yh, FACTOR_F32, vl), ph, pl, vl);
-    pl = __riscv_vfadd_vv_f32m4(pl, __riscv_vfmul_vf_f32m4(yl, FACTOR_F32, vl), vl);
+    pl = __riscv_vfmacc_vf_f32m4(pl, FACTOR_F32, yl, vl);
 }
 
 forceinline void calculate_exp2_polynom_hl12_f32m4(vfloat32m4_t yh,
     vfloat32m4_t& ph, vfloat32m4_t& pl, size_t vl)
 {
+#ifndef __FAST_MATH__
     vfloat32m4_t yhs = __riscv_vfadd_vf_f32m4(yh, SHIFT_AVOID_UNDERFFLOW_IN_SQR_F32, vl);
+#else
+    vfloat32m4_t yhs = yh;
+#endif
     vfloat32m4_t sqryh = __riscv_vfmul_vv_f32m4(yhs, yhs, vl);
     vfloat32m4_t r = calc_polynom_deg_2_f32m4(yh, EXP2_POL_COEFF_2_F32, EXP2_POL_COEFF_3_F32, EXP2_POL_COEFF_4_F32, vl);
     fma12_ver2p1_vf_f32m4(yh, EXP2_POL_COEFF_1_F32, __riscv_vfmul_vv_f32m4(sqryh, r, vl), ph, pl, vl);
@@ -533,50 +526,52 @@ forceinline void calculate_exp2_polynom_hl12_f32m4(vfloat32m4_t yh,
 forceinline void reconstruct_exp_hl_hl_f32m4(vfloat32m4_t th, vfloat32m4_t tl,
     vfloat32m4_t pm1h, vfloat32m4_t pm1l, vuint32m4_t ei, vfloat32m4_t& res, size_t vl)
 {
-    vfloat32m4_t sh, sl, sl1;
-    fast_2_sum_fv_f32m4(FACTOR_F32, pm1h, sh, sl1, vl);
-    sl = __riscv_vfadd_vv_f32m4(sl1, pm1l, vl);
-    mul21_vv_f32m4(th, tl, sh, sl, res, vl);
+    vfloat32m4_t zh, zl;
+    fma12_vv_f32m4(th, pm1h, __riscv_vfmul_vf_f32m4(th, FACTOR_F32, vl), zh, zl, vl);
+    zl = __riscv_vfadd_vv_f32m4(zl, __riscv_vfmadd_vv_f32m4(th, pm1l,
+        __riscv_vfmadd_vv_f32m4(tl, pm1h, __riscv_vfmul_vf_f32m4(tl, FACTOR_F32, vl), vl), vl), vl);
 
-    vuint32m4_t sign_ei = __riscv_vsrl_vx_u32m4(ei, (size_t)8, vl);
-    vuint32m4_t shift = __riscv_vmul_vx_u32m4(sign_ei, MAGIC_CONST_2_F32, vl);
+    ei = __riscv_vadd_vx_u32m4(__riscv_vsll_vx_u32m4(ei, (size_t)22, vl), BIAS_FACTOR_EXP_F32, vl);
+    vuint32m4_t shifti = __riscv_vand_vx_u32m4(ei, (uint32_t)0x00400000, vl);
+    vuint32m4_t pow2e1i = __riscv_vadd_vv_u32m4(ei, shifti, vl);
+    vuint32m4_t pow2e2i = __riscv_vsub_vv_u32m4(ei, shifti, vl);
+    vuint32m4_t invpow2e2i = __riscv_vrsub_vx_u32m4(pow2e2i, (uint32_t)0x7f000000, vl);
 
-    vuint32m4_t pow2ei = __riscv_vadd_vv_u32m4(__riscv_vrsub_vx_u32m4(shift, FACTOR_DEG_F32, vl), ei, vl);
-    pow2ei = __riscv_vsll_vx_u32m4(pow2ei, (size_t)23, vl);
-    vuint32m4_t factori = __riscv_vadd_vx_u32m4(shift, (uint32_t)127, vl);
-    factori = __riscv_vsll_vx_u32m4(factori, (size_t)23, vl);
+    vfloat32m4_t pow2e1 = __riscv_vreinterpret_v_u32m4_f32m4(pow2e1i);
+    vfloat32m4_t pow2e2 = __riscv_vreinterpret_v_u32m4_f32m4(pow2e2i);
+    vfloat32m4_t invpow2e2 = __riscv_vreinterpret_v_u32m4_f32m4(invpow2e2i);
 
-    res = __riscv_vfmul_vv_f32m4(res, __riscv_vreinterpret_v_u32m4_f32m4(pow2ei), vl);
-    res = __riscv_vfmul_vv_f32m4(res, __riscv_vreinterpret_v_u32m4_f32m4(factori), vl);
-
-    res = abs_f32m4(res, vl);
+    zh = __riscv_vfmul_vv_f32m4(zh, pow2e1, vl);
+    res = __riscv_vfmul_vv_f32m4(zh, pow2e2, vl);
+    zl = __riscv_vfmadd_vv_f32m4(zl, pow2e1, __riscv_vfnmsac_vv_f32m4(zh, res, invpow2e2, vl), vl);
+    res = __riscv_vfmacc_vv_f32m4(res, zl, pow2e2, vl);
 }
 
 forceinline void reconstruct_expm1_f32m4(vfloat32m4_t th, vfloat32m4_t tl,
     vfloat32m4_t pm1h, vfloat32m4_t pm1l, vuint32m4_t ei, vfloat32m4_t& res, size_t vl)
 {
+    vbool8_t mNearZero = __riscv_vmseq_vx_u32m4_b8(ei, (uint32_t)0, vl);
+
     vfloat32m4_t rh, rl, rll;
     fast_2_sum_fv_f32m4(FACTOR_F32, pm1h, rh, rl, vl);
     fast_2_sum_vv_f32m4(rl, pm1l, rl, rll, vl);
     mul22_vv_f32m4(th, tl, rh, rl, rh, rl, vl);
 
-    vuint32m4_t pow2ei = __riscv_vsll_vx_u32m4(__riscv_vadd_vx_u32m4(ei, FACTOR_DEG_F32, vl), (size_t)23, vl);
-    rh = __riscv_vfmul_vv_f32m4(rh, __riscv_vreinterpret_v_u32m4_f32m4(pow2ei), vl);
-    rl = __riscv_vfmul_vv_f32m4(rl, __riscv_vreinterpret_v_u32m4_f32m4(pow2ei), vl);
-    rll = __riscv_vfmul_vv_f32m4(rll, __riscv_vreinterpret_v_u32m4_f32m4(pow2ei), vl);
+    ei = __riscv_vsll_vx_u32m4(ei, (size_t)23, vl);
+    vfloat32m4_t pow2e = __riscv_vreinterpret_v_u32m4_f32m4(__riscv_vadd_vx_u32m4(ei, BIAS_FACTOR_EXPM1_F32, vl));
+    rh = __riscv_vfmul_vv_f32m4(rh, pow2e, vl);
 
-    vfloat32m4_t sh1, sl1, maxs, mins;
-    vbool8_t sortMask = __riscv_vmsgtu_vx_u32m4_b8(__riscv_vand_vx_u32m4(
-        __riscv_vreinterpret_v_f32m4_u32m4(rh), (uint32_t)0x7f800000, vl), (uint32_t)0x3f800000, vl);
-    maxs = __riscv_vfmerge_vfm_f32m4(rh, EXPM1_UNDERFLOW_VALUE_F32, __riscv_vmnot_m_b8(sortMask, vl), vl);
-    mins = __riscv_vfmerge_vfm_f32m4(rh, EXPM1_UNDERFLOW_VALUE_F32, sortMask, vl);
-    fast_2_sum_vv_f32m4(maxs, mins, sh1, sl1, vl);
+    vfloat32m4_t sh1, sl1;
+    sh1 = __riscv_vfadd_vf_f32m4(rh, EXPM1_UNDERFLOW_VALUE_F32, vl);
+    sl1 = __riscv_vfsub_vv_f32m4(sh1, rh, vl);
+    sl1 = __riscv_vfadd_vv_f32m4(__riscv_vfsub_vv_f32m4(rh, __riscv_vfsub_vv_f32m4(sh1, sl1, vl), vl),
+        __riscv_vfrsub_vf_f32m4(sl1, EXPM1_UNDERFLOW_VALUE_F32, vl), vl);
 
-    vfloat32m4_t sh2, sl2, resl;
-    sl2 = __riscv_vfadd_vv_f32m4(sl1, rll, vl);
-    fast_2_sum_vv_f32m4(rl, sl2, sh2, sl2, vl);
-    fast_2_sum_vv_f32m4(sh1, sh2, res, resl, vl);
-    res = __riscv_vfadd_vv_f32m4(res, __riscv_vfadd_vv_f32m4(resl, sl2, vl), vl);
+    vfloat32m4_t tmp, resl;
+    tmp = __riscv_vfmadd_vv_f32m4(rl, pow2e, sl1, vl);
+    fast_2_sum_vv_f32m4(sh1, tmp, res, resl, vl);
+    resl = __riscv_vfmacc_vv_f32m4_mu(mNearZero, resl, pow2e, rll, vl);
+    res = __riscv_vfadd_vv_f32m4_mu(mNearZero, res, res, resl, vl);
 }
 
 forceinline void process_linear_f32m4(vfloat32m4_t x, vfloat32m4_t& xc, vbool8_t& linearMask, size_t vl)
@@ -589,21 +584,5 @@ forceinline void set_fe_underflow_f32m4(vfloat32m4_t& res, size_t vl)
 {
 #ifndef __FAST_MATH__
     res = __riscv_vfmadd_vf_f32m4(res, (float)0x1p-26f, res, vl);
-#endif
-}
-
-forceinline void exp2_set_fe_underflow_f32m4(vfloat32m4_t x, vfloat32m4_t& res, size_t vl)
-{
-#ifndef __FAST_MATH__
-    vuint32m4_t mask = __riscv_vsrl_vx_u32m4(__riscv_vand_vx_u32m4(
-        __riscv_vreinterpret_v_f32m4_u32m4(x), (uint32_t)0x7f800000, vl), (size_t)23, vl);
-    mask = __riscv_vsub_vx_u32m4(__riscv_vsll_vv_u32m4(__riscv_vmv_v_x_u32m4((uint32_t)1, vl),
-        __riscv_vrsub_vx_u32m4(mask, (uint32_t)150, vl), vl), (uint32_t)1, vl);
-    vbool8_t intMask = __riscv_vmseq_vx_u32m4_b8(
-        __riscv_vand_vv_u32m4(__riscv_vreinterpret_v_f32m4_u32m4(x), mask, vl), (uint32_t)0, vl);
-
-    vfloat32m4_t coeff = __riscv_vfmerge_vfm_f32m4(
-        __riscv_vfmv_v_f_f32m4((float)0x1p-26f, vl), ZERO_F32, intMask, vl);
-    res = __riscv_vfmadd_vv_f32m4(res, coeff, res, vl);
 #endif
 }
