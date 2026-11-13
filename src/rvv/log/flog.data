@@ -1,0 +1,20 @@
+/* 
+ *========================================================
+ * Copyright (c) The Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova,
+ * Vladislav Polozov)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+static float table_float_log_R[64] = {
+0x1.96b7aep-2f, 0x1.8b559p-2f, 0x1.7f9974p-2f, 0x1.74d90cp-2f, 0x1.689438p-2f, 0x1.5dba14p-2f, 0x1.517a6ap-2f, 0x1.47072cp-2f, 0x1.3bb91ap-2f, 0x1.30c67cp-2f, 0x1.25ff82p-2f, 0x1.1c39fp-2f, 0x1.11c76ap-2f, 0x1.07206ep-2f, 0x1.fb2a7ep-3f, 0x1.e4bdaap-3f, 0x1.d1707ap-3f, 0x1.bd00b6p-3f, 0x1.a9944ep-3f, 0x1.93fa66p-3f, 0x1.809a66p-3f, 0x1.6d37a2p-3f, 0x1.5a1a94p-3f, 0x1.49a94p-3f, 0x1.365b36p-3f, 0x1.228f06p-3f, 0x1.11616ap-3f, 0x1.00800cp-3f, 0x1.db6deep-4f, 0x1.b8095cp-4f, 0x1.955b2ap-4f, 0x1.6bf39ap-4f, 0x1.514404p-4f, 0x1.2792e2p-4f, 0x1.07882ap-4f, 0x1.ca0d78p-5f, 0x1.8bff52p-5f, 0x1.4de334p-5f, 0x1.fb74c2p-6f, 0x1.71cc8cp-6f, 0x1.065a64p-6f, 0x1.02d59cp-7f, 0x0p+0f, -0x1.057c9ap-6f, -0x1.ff9ddp-6f, -0x1.777088p-5f, -0x1.ef69ap-5f, -0x1.343c96p-4f, -0x1.70bd8cp-4f, -0x1.a8b41ap-4f, -0x1.e2d004p-4f, -0x1.0d13c2p-3f, -0x1.2a76eep-3f, -0x1.43c2a4p-3f, -0x1.5f4a34p-3f, -0x1.7a1708p-3f, -0x1.94c6f2p-3f, -0x1.af6864p-3f, -0x1.c8b076p-3f, -0x1.e37b2ep-3f, -0x1.fbab7ep-3f, -0x1.0a113ap-2f, -0x1.165524p-2f, -0x1.22bd36p-2f
+};
+static float table_float_R[64] = {
+0x1.7cd566p+0f, 0x1.789f9ep+0f, 0x1.745506p+0f, 0x1.707178p+0f, 0x1.6c0e1ep+0f, 0x1.6837a4p+0f, 0x1.63ef2ap+0f, 0x1.6052p+0f, 0x1.5c73bcp+0f, 0x1.58bf2p+0f, 0x1.552324p+0f, 0x1.51e5bap+0f, 0x1.4e77aep+0f, 0x1.4b0196p+0f, 0x1.47ef8p+0f, 0x1.445d44p+0f, 0x1.41525ap+0f, 0x1.3e2198p+0f, 0x1.3b20d8p+0f, 0x1.37d26cp+0f, 0x1.34e2cap+0f, 0x1.31f9d2p+0f, 0x1.2f223p+0f, 0x1.2cb5a4p+0f, 0x1.29e368p+0f, 0x1.2705c6p+0f, 0x1.248eeep+0f, 0x1.222828p+0f, 0x1.1f81eep+0f, 0x1.1d08bp+0f, 0x1.1aa17ap+0f, 0x1.17c9c6p+0f, 0x1.15f8a4p+0f, 0x1.1327fep+0f, 0x1.11031cp+0f, 0x1.0eb8cep+0f, 0x1.0cadccp+0f, 0x1.0aa648p+0f, 0x1.080d96p+0f, 0x1.05d804p+0f, 0x1.0421dcp+0f, 0x1.0207b8p+0f, 0x1p+0f, 0x1.f7e4b6p-1f, 0x1.f0425p-1f, 0x1.e9108ap-1f, 0x1.e1f452p-1f, 0x1.dae26cp-1f, 0x1.d3ebdap-1f, 0x1.cd9256p-1f, 0x1.c711d4p-1f, 0x1.c0f664p-1f, 0x1.ba90fp-1f, 0x1.b5222ap-1f, 0x1.af4bf8p-1f, 0x1.a9b088p-1f, 0x1.a42dbp-1f, 0x1.9ec00ap-1f, 0x1.99a968p-1f, 0x1.945664p-1f, 0x1.8f9708p-1f, 0x1.8ad852p-1f, 0x1.8624d2p-1f, 0x1.81720ap-1f
+};
