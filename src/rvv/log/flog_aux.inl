@@ -1,10 +1,10 @@
 /*
  *========================================================
- * Copyright (c) RVVPL and Lobachevsky State University of
+ * Copyright (c) RVVPL and Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
- *
- * Copyright 2026 The RVVMF Authors (Vladislav Polozov,
- * Elena Panova)
+ * 
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova,
+ * Vladislav Polozov)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this
@@ -82,88 +82,45 @@ static inline void log_check_special_cases_f32m1(vfloat32m1_t& x, vfloat32m1_t& 
     x = __riscv_vfmerge_vfm_f32m1(x, defaultArgValue, specialMask, vl);
 }
 
-static inline void decompose_number_f32m1(vfloat32m1_t x, vfloat32m1_t& m, vint32m1_t& e, size_t vl)
+static inline void my_log_argument_reduction_f32m1(vfloat32m1_t x, vfloat32m1_t& y,
+    vint32m1_t& e, vfloat32m1_t& ef, vuint32m1_t& index, size_t vl)
 {
-    // get exponent
-    vuint32m1_t resu = __riscv_vreinterpret_v_f32m1_u32m1(x);
-    resu = __riscv_vand_vx_u32m1(resu, (uint32_t)0x7f800000, vl);
-    resu = __riscv_vsrl_vx_u32m1(resu, (uint32_t)23, vl);
-    e = __riscv_vreinterpret_v_u32m1_i32m1(resu);
-    e = __riscv_vsub_vx_i32m1(e, (int32_t)127, vl);
+    constexpr uint32_t magic_const_1 = 0x3f2b0000;
+    constexpr size_t tshift = 23 - 6 - 2;
 
-    // get significand
     vuint32m1_t xi = __riscv_vreinterpret_v_f32m1_u32m1(x);
-    xi = __riscv_vand_vx_u32m1(xi, (uint32_t)0x007fffff, vl);
-    xi = __riscv_vor_vx_u32m1(xi, (uint32_t)0x3f800000, vl);
-    m = __riscv_vreinterpret_v_u32m1_f32m1(xi);
-}
+    vbool32_t msubn = __riscv_vmsltu_vx_u32m1_b32(xi, 0x00800000, vl);
+    x = __riscv_vfmul_vf_f32m1_mu(msubn, x, x, (float)0x1p23f, vl);
+    xi = __riscv_vreinterpret_v_f32m1_u32m1(x);
 
-static inline void my_log1p_argument_reduction_f32m1(vfloat32m1_t x, vfloat32m1_t& y,
-    vint32m1_t& e, vfloat32m1_t& ef, size_t vl)
-{
-    constexpr float ap1 = 0x1.56p0f;
+    vuint32m1_t magic_number = __riscv_vsub_vx_u32m1(xi, magic_const_1, vl);
+    e = __riscv_vsra_vx_i32m1(__riscv_vreinterpret_v_u32m1_i32m1(magic_number), (size_t)23, vl);
+    e = __riscv_vsub_vx_i32m1_mu(msubn, e, e, (int32_t)23, vl);
+    xi = __riscv_vsub_vv_u32m1(xi, __riscv_vand_vx_u32m1(magic_number, (uint32_t)0xff800000, vl), vl);
+    y = __riscv_vreinterpret_v_u32m1_f32m1(xi);
 
-    vint32m1_t et;
-    vfloat32m1_t yt;
-    decompose_number_f32m1(x, y, e, vl);
-
-    vbool32_t subnormalMask = __riscv_vmflt_vf_f32m1_b32(x, (float)0x1p-126f, vl);
-    yt = __riscv_vfsub_vf_f32m1(y, (float)1.0f, vl);
-    decompose_number_f32m1(yt, yt, et, vl);
-    et = __riscv_vadd_vv_i32m1(__riscv_vadd_vx_i32m1(e, (int32_t)1, vl), et, vl);
-    y = __riscv_vmerge_vvm_f32m1(y, yt, subnormalMask, vl);
-    e = __riscv_vmerge_vvm_i32m1(e, et, subnormalMask, vl);
-
-    vbool32_t mask = __riscv_vmfge_vf_f32m1_b32(y, ap1, vl);
-    yt = __riscv_vfmul_vf_f32m1(y, (float)0.5f, vl);
-    et = __riscv_vadd_vx_i32m1(e, (int32_t)1, vl);
-    y = __riscv_vmerge_vvm_f32m1(y, yt, mask, vl);
-    e = __riscv_vmerge_vvm_i32m1(e, et, mask, vl);
-
+    index = __riscv_vsrl_vx_u32m1(__riscv_vand_vx_u32m1(magic_number, (uint32_t)0x007e0000, vl), tshift, vl);
     ef = __riscv_vfcvt_f_x_v_f32m1(e, vl);
 }
 
-static inline void my_log_argument_reduction_f32m1(vfloat32m1_t x, vfloat32m1_t& y, vfloat32m1_t& ef, size_t vl)
+static inline void my_log_table_values_f32m1(vuint32m1_t index, vfloat32m1_t& r, vfloat32m1_t& logR, size_t vl)
 {
-    vint32m1_t e;
-    my_log1p_argument_reduction_f32m1(x, y, e, ef, vl);
-}
-
-static inline void my_log_table_values_f32m1(vfloat32m1_t y, vfloat32m1_t& logR, vfloat32m1_t& r, size_t vl)
-{
-    constexpr size_t k = 6;
-    constexpr float u = 0x1.7711dcp0f, v = 0x1.5dc48cp-5f;
-    constexpr size_t tshift = 23 - k;
-
-    vuint32m1_t index = __riscv_vreinterpret_v_f32m1_u32m1(
-        __riscv_vfmadd_vf_f32m1(y, u, __riscv_vfmv_v_f_f32m1(v, vl), vl));
-    index = __riscv_vand_vx_u32m1(index, (uint32_t)0x007fffff, vl);
-    index = __riscv_vsrl_vx_u32m1(index, tshift, vl);
-
-    index = __riscv_vmul_vx_u32m1(index, sizeof(float), vl);
-
     logR = __riscv_vloxei32_v_f32m1(table_float_log_R, index, vl);
     r = __riscv_vloxei32_v_f32m1(table_float_R, index, vl);
 }
 
-static inline void my_log_second_reduction_f32m1(vfloat32m1_t y, vfloat32m1_t& z,
-    vfloat32m1_t& zh, vfloat32m1_t& zl, vfloat32m1_t& logR, size_t vl)
+static inline void my_log_second_reduction_f32m1(vfloat32m1_t y, vfloat32m1_t r,
+    vfloat32m1_t& z, vfloat32m1_t& zh, vfloat32m1_t& zl, size_t vl)
 {
-    vfloat32m1_t r;
-    my_log_table_values_f32m1(y, logR, r, vl);
-
     zh = __riscv_vfmul_vv_f32m1(y, r, vl);
     zl = __riscv_vfmsub_vv_f32m1(y, r, zh, vl);
     zh = __riscv_vfsub_vf_f32m1(zh, (float)1.0f, vl);
     z = __riscv_vfadd_vv_f32m1(zh, zl, vl);
 }
 
-static inline void my_log1p_second_reduction_f32m1(vfloat32m1_t xm1, vfloat32m1_t y, vint32m1_t e,
-    vfloat32m1_t& z, vfloat32m1_t& zh, vfloat32m1_t& zl, vfloat32m1_t& logR, size_t vl)
+static inline void my_log1p_second_reduction_f32m1(vfloat32m1_t xm1, vfloat32m1_t r,
+    vint32m1_t e, vfloat32m1_t& z, vfloat32m1_t& zh, vfloat32m1_t& zl, size_t vl)
 {
-    vfloat32m1_t r;
-    my_log_table_values_f32m1(y, logR, r, vl);
-
     vint32m1_t pow2mei = __riscv_vadd_vx_i32m1(__riscv_vneg_v_i32m1(e, vl), (int32_t)129, vl);
     vfloat32m1_t pow2me = __riscv_vreinterpret_v_i32m1_f32m1(__riscv_vsll_vx_i32m1(pow2mei, 23, vl));
     vfloat32m1_t c = __riscv_vfmul_vv_f32m1(pow2me, r, vl);
@@ -256,8 +213,8 @@ static inline void my_log2_reconstruction_f32m1(vfloat32m1_t e, vfloat32m1_t zh,
 static inline void my_log1p_reconstruction_h_f32m1(vfloat32m1_t e, vfloat32m1_t zh,
     vfloat32m1_t zl, vfloat32m1_t p, vfloat32m1_t logR, vfloat32m1_t& res, size_t vl)
 {
-    constexpr float log2h = 0x1.62e43p-1f, log2l = -0x1.05c61p-29f;
     constexpr float factor = 0x1p100f, invfactor = 0x1p-100f;
+    constexpr float log2h = 0x1.62e43p-1f, log2l = -0x1.05c61p-29f*factor;
 
     vfloat32m1_t rh, rl, tmp, tmph, tmpl, resl;
 
@@ -268,7 +225,7 @@ static inline void my_log1p_reconstruction_h_f32m1(vfloat32m1_t e, vfloat32m1_t 
     tmph = __riscv_vfmadd_vv_f32m1(p, zh, tmp, vl);
     tmpl = __riscv_vfadd_vv_f32m1(tmpl, __riscv_vfmsub_vv_f32m1(
         p, zh, __riscv_vfsub_vv_f32m1(tmph, tmp, vl), vl), vl);
-    tmph = __riscv_vfmadd_vf_f32m1(e, log2l*factor, tmph, vl);
+    tmph = __riscv_vfmadd_vf_f32m1(e, log2l, tmph, vl);
     res = __riscv_vfsub_vv_f32m1(zh, logR, vl);
     tmpl = __riscv_vfadd_vv_f32m1(tmpl, __riscv_vfmsub_vf_f32m1(
         __riscv_vfsub_vv_f32m1(zh, res, vl), factor, __riscv_vfmul_vf_f32m1(logR, factor, vl), vl), vl);
@@ -353,86 +310,45 @@ static inline void log_check_special_cases_f32m2(vfloat32m2_t& x, vfloat32m2_t& 
     x = __riscv_vfmerge_vfm_f32m2(x, defaultArgValue, specialMask, vl);
 }
 
-static inline void decompose_number_f32m2(vfloat32m2_t x, vfloat32m2_t& m, vint32m2_t& e, size_t vl)
+static inline void my_log_argument_reduction_f32m2(vfloat32m2_t x, vfloat32m2_t& y,
+    vint32m2_t& e, vfloat32m2_t& ef, vuint32m2_t& index, size_t vl)
 {
-    vuint32m2_t resu = __riscv_vreinterpret_v_f32m2_u32m2(x);
-    resu = __riscv_vand_vx_u32m2(resu, (uint32_t)0x7f800000, vl);
-    resu = __riscv_vsrl_vx_u32m2(resu, (uint32_t)23, vl);
-    e = __riscv_vreinterpret_v_u32m2_i32m2(resu);
-    e = __riscv_vsub_vx_i32m2(e, (int32_t)127, vl);
+    constexpr uint32_t magic_const_1 = 0x3f2b0000;
+    constexpr size_t tshift = 23 - 6 - 2;
 
     vuint32m2_t xi = __riscv_vreinterpret_v_f32m2_u32m2(x);
-    xi = __riscv_vand_vx_u32m2(xi, (uint32_t)0x007fffff, vl);
-    xi = __riscv_vor_vx_u32m2(xi, (uint32_t)0x3f800000, vl);
-    m = __riscv_vreinterpret_v_u32m2_f32m2(xi);
-}
+    vbool16_t msubn = __riscv_vmsltu_vx_u32m2_b16(xi, 0x00800000, vl);
+    x = __riscv_vfmul_vf_f32m2_mu(msubn, x, x, (float)0x1p23f, vl);
+    xi = __riscv_vreinterpret_v_f32m2_u32m2(x);
 
-static inline void my_log1p_argument_reduction_f32m2(vfloat32m2_t x, vfloat32m2_t& y,
-    vint32m2_t& e, vfloat32m2_t& ef, size_t vl)
-{
-    constexpr float ap1 = 0x1.56p0f;
+    vuint32m2_t magic_number = __riscv_vsub_vx_u32m2(xi, magic_const_1, vl);
+    e = __riscv_vsra_vx_i32m2(__riscv_vreinterpret_v_u32m2_i32m2(magic_number), (size_t)23, vl);
+    e = __riscv_vsub_vx_i32m2_mu(msubn, e, e, (int32_t)23, vl);
+    xi = __riscv_vsub_vv_u32m2(xi, __riscv_vand_vx_u32m2(magic_number, (uint32_t)0xff800000, vl), vl);
+    y = __riscv_vreinterpret_v_u32m2_f32m2(xi);
 
-    vint32m2_t et;
-    vfloat32m2_t yt;
-    decompose_number_f32m2(x, y, e, vl);
-
-    vbool16_t subnormalMask = __riscv_vmflt_vf_f32m2_b16(x, (float)0x1p-126f, vl);
-    yt = __riscv_vfsub_vf_f32m2(y, (float)1.0f, vl);
-    decompose_number_f32m2(yt, yt, et, vl);
-    et = __riscv_vadd_vv_i32m2(__riscv_vadd_vx_i32m2(e, (int32_t)1, vl), et, vl);
-    y = __riscv_vmerge_vvm_f32m2(y, yt, subnormalMask, vl);
-    e = __riscv_vmerge_vvm_i32m2(e, et, subnormalMask, vl);
-
-    vbool16_t mask = __riscv_vmfge_vf_f32m2_b16(y, ap1, vl);
-    yt = __riscv_vfmul_vf_f32m2(y, (float)0.5f, vl);
-    et = __riscv_vadd_vx_i32m2(e, (int32_t)1, vl);
-    y = __riscv_vmerge_vvm_f32m2(y, yt, mask, vl);
-    e = __riscv_vmerge_vvm_i32m2(e, et, mask, vl);
-
+    index = __riscv_vsrl_vx_u32m2(__riscv_vand_vx_u32m2(magic_number, (uint32_t)0x007e0000, vl), tshift, vl);
     ef = __riscv_vfcvt_f_x_v_f32m2(e, vl);
 }
 
-static inline void my_log_argument_reduction_f32m2(vfloat32m2_t x, vfloat32m2_t& y, vfloat32m2_t& ef, size_t vl)
+static inline void my_log_table_values_f32m2(vuint32m2_t index, vfloat32m2_t& r, vfloat32m2_t& logR, size_t vl)
 {
-    vint32m2_t e;
-    my_log1p_argument_reduction_f32m2(x, y, e, ef, vl);
-}
-
-static inline void my_log_table_values_f32m2(vfloat32m2_t y, vfloat32m2_t& logR, vfloat32m2_t& r, size_t vl)
-{
-    constexpr size_t k = 6;
-    constexpr float u = 0x1.7711dcp0f, v = 0x1.5dc48cp-5f;
-    constexpr size_t tshift = 23 - k;
-
-    vuint32m2_t index = __riscv_vreinterpret_v_f32m2_u32m2(
-        __riscv_vfmadd_vf_f32m2(y, u, __riscv_vfmv_v_f_f32m2(v, vl), vl));
-    index = __riscv_vand_vx_u32m2(index, (uint32_t)0x007fffff, vl);
-    index = __riscv_vsrl_vx_u32m2(index, tshift, vl);
-
-    index = __riscv_vmul_vx_u32m2(index, sizeof(float), vl);
-
     logR = __riscv_vloxei32_v_f32m2(table_float_log_R, index, vl);
     r = __riscv_vloxei32_v_f32m2(table_float_R, index, vl);
 }
 
-static inline void my_log_second_reduction_f32m2(vfloat32m2_t y, vfloat32m2_t& z,
-    vfloat32m2_t& zh, vfloat32m2_t& zl, vfloat32m2_t& logR, size_t vl)
+static inline void my_log_second_reduction_f32m2(vfloat32m2_t y, vfloat32m2_t r,
+    vfloat32m2_t& z, vfloat32m2_t& zh, vfloat32m2_t& zl, size_t vl)
 {
-    vfloat32m2_t r;
-    my_log_table_values_f32m2(y, logR, r, vl);
-
     zh = __riscv_vfmul_vv_f32m2(y, r, vl);
     zl = __riscv_vfmsub_vv_f32m2(y, r, zh, vl);
     zh = __riscv_vfsub_vf_f32m2(zh, (float)1.0f, vl);
     z = __riscv_vfadd_vv_f32m2(zh, zl, vl);
 }
 
-static inline void my_log1p_second_reduction_f32m2(vfloat32m2_t xm1, vfloat32m2_t y, vint32m2_t e,
-    vfloat32m2_t& z, vfloat32m2_t& zh, vfloat32m2_t& zl, vfloat32m2_t& logR, size_t vl)
+static inline void my_log1p_second_reduction_f32m2(vfloat32m2_t xm1, vfloat32m2_t r,
+    vint32m2_t e, vfloat32m2_t& z, vfloat32m2_t& zh, vfloat32m2_t& zl, size_t vl)
 {
-    vfloat32m2_t r;
-    my_log_table_values_f32m2(y, logR, r, vl);
-
     vint32m2_t pow2mei = __riscv_vadd_vx_i32m2(__riscv_vneg_v_i32m2(e, vl), (int32_t)129, vl);
     vfloat32m2_t pow2me = __riscv_vreinterpret_v_i32m2_f32m2(__riscv_vsll_vx_i32m2(pow2mei, 23, vl));
     vfloat32m2_t c = __riscv_vfmul_vv_f32m2(pow2me, r, vl);
@@ -525,8 +441,8 @@ static inline void my_log2_reconstruction_f32m2(vfloat32m2_t e, vfloat32m2_t zh,
 static inline void my_log1p_reconstruction_h_f32m2(vfloat32m2_t e, vfloat32m2_t zh,
     vfloat32m2_t zl, vfloat32m2_t p, vfloat32m2_t logR, vfloat32m2_t& res, size_t vl)
 {
-    constexpr float log2h = 0x1.62e43p-1f, log2l = -0x1.05c61p-29f;
     constexpr float factor = 0x1p100f, invfactor = 0x1p-100f;
+    constexpr float log2h = 0x1.62e43p-1f, log2l = -0x1.05c61p-29f;
 
     vfloat32m2_t rh, rl, tmp, tmph, tmpl, resl;
 
@@ -622,86 +538,45 @@ static inline void log_check_special_cases_f32m4(vfloat32m4_t& x, vfloat32m4_t& 
     x = __riscv_vfmerge_vfm_f32m4(x, defaultArgValue, specialMask, vl);
 }
 
-static inline void decompose_number_f32m4(vfloat32m4_t x, vfloat32m4_t& m, vint32m4_t& e, size_t vl)
+static inline void my_log_argument_reduction_f32m4(vfloat32m4_t x, vfloat32m4_t& y,
+    vint32m4_t& e, vfloat32m4_t& ef, vuint32m4_t& index, size_t vl)
 {
-    vuint32m4_t resu = __riscv_vreinterpret_v_f32m4_u32m4(x);
-    resu = __riscv_vand_vx_u32m4(resu, (uint32_t)0x7f800000, vl);
-    resu = __riscv_vsrl_vx_u32m4(resu, (uint32_t)23, vl);
-    e = __riscv_vreinterpret_v_u32m4_i32m4(resu);
-    e = __riscv_vsub_vx_i32m4(e, (int32_t)127, vl);
+    constexpr uint32_t magic_const_1 = 0x3f2b0000;
+    constexpr size_t tshift = 23 - 6 - 2;
 
     vuint32m4_t xi = __riscv_vreinterpret_v_f32m4_u32m4(x);
-    xi = __riscv_vand_vx_u32m4(xi, (uint32_t)0x007fffff, vl);
-    xi = __riscv_vor_vx_u32m4(xi, (uint32_t)0x3f800000, vl);
-    m = __riscv_vreinterpret_v_u32m4_f32m4(xi);
-}
+    vbool8_t msubn = __riscv_vmsltu_vx_u32m4_b8(xi, 0x00800000, vl);
+    x = __riscv_vfmul_vf_f32m4_mu(msubn, x, x, (float)0x1p23f, vl);
+    xi = __riscv_vreinterpret_v_f32m4_u32m4(x);
 
-static inline void my_log1p_argument_reduction_f32m4(vfloat32m4_t x, vfloat32m4_t& y,
-    vint32m4_t& e, vfloat32m4_t& ef, size_t vl)
-{
-    constexpr float ap1 = 0x1.56p0f;
+    vuint32m4_t magic_number = __riscv_vsub_vx_u32m4(xi, magic_const_1, vl);
+    e = __riscv_vsra_vx_i32m4(__riscv_vreinterpret_v_u32m4_i32m4(magic_number), (size_t)23, vl);
+    e = __riscv_vsub_vx_i32m4_mu(msubn, e, e, (int32_t)23, vl);
+    xi = __riscv_vsub_vv_u32m4(xi, __riscv_vand_vx_u32m4(magic_number, (uint32_t)0xff800000, vl), vl);
+    y = __riscv_vreinterpret_v_u32m4_f32m4(xi);
 
-    vint32m4_t et;
-    vfloat32m4_t yt;
-    decompose_number_f32m4(x, y, e, vl);
-
-    vbool8_t subnormalMask = __riscv_vmflt_vf_f32m4_b8(x, (float)0x1p-126f, vl);
-    yt = __riscv_vfsub_vf_f32m4(y, (float)1.0f, vl);
-    decompose_number_f32m4(yt, yt, et, vl);
-    et = __riscv_vadd_vv_i32m4(__riscv_vadd_vx_i32m4(e, (int32_t)1, vl), et, vl);
-    y = __riscv_vmerge_vvm_f32m4(y, yt, subnormalMask, vl);
-    e = __riscv_vmerge_vvm_i32m4(e, et, subnormalMask, vl);
-
-    vbool8_t mask = __riscv_vmfge_vf_f32m4_b8(y, ap1, vl);
-    yt = __riscv_vfmul_vf_f32m4(y, (float)0.5f, vl);
-    et = __riscv_vadd_vx_i32m4(e, (int32_t)1, vl);
-    y = __riscv_vmerge_vvm_f32m4(y, yt, mask, vl);
-    e = __riscv_vmerge_vvm_i32m4(e, et, mask, vl);
-
+    index = __riscv_vsrl_vx_u32m4(__riscv_vand_vx_u32m4(magic_number, (uint32_t)0x007e0000, vl), tshift, vl);
     ef = __riscv_vfcvt_f_x_v_f32m4(e, vl);
 }
 
-static inline void my_log_argument_reduction_f32m4(vfloat32m4_t x, vfloat32m4_t& y, vfloat32m4_t& ef, size_t vl)
+static inline void my_log_table_values_f32m4(vuint32m4_t index, vfloat32m4_t& r, vfloat32m4_t& logR, size_t vl)
 {
-    vint32m4_t e;
-    my_log1p_argument_reduction_f32m4(x, y, e, ef, vl);
-}
-
-static inline void my_log_table_values_f32m4(vfloat32m4_t y, vfloat32m4_t& logR, vfloat32m4_t& r, size_t vl)
-{
-    constexpr size_t k = 6;
-    constexpr float u = 0x1.7711dcp0f, v = 0x1.5dc48cp-5f;
-    constexpr size_t tshift = 23 - k;
-
-    vuint32m4_t index = __riscv_vreinterpret_v_f32m4_u32m4(
-        __riscv_vfmadd_vf_f32m4(y, u, __riscv_vfmv_v_f_f32m4(v, vl), vl));
-    index = __riscv_vand_vx_u32m4(index, (uint32_t)0x007fffff, vl);
-    index = __riscv_vsrl_vx_u32m4(index, tshift, vl);
-
-    index = __riscv_vmul_vx_u32m4(index, sizeof(float), vl);
-
     logR = __riscv_vloxei32_v_f32m4(table_float_log_R, index, vl);
     r = __riscv_vloxei32_v_f32m4(table_float_R, index, vl);
 }
 
-static inline void my_log_second_reduction_f32m4(vfloat32m4_t y, vfloat32m4_t& z,
-    vfloat32m4_t& zh, vfloat32m4_t& zl, vfloat32m4_t& logR, size_t vl)
+static inline void my_log_second_reduction_f32m4(vfloat32m4_t y, vfloat32m4_t r,
+    vfloat32m4_t& z, vfloat32m4_t& zh, vfloat32m4_t& zl, size_t vl)
 {
-    vfloat32m4_t r;
-    my_log_table_values_f32m4(y, logR, r, vl);
-
     zh = __riscv_vfmul_vv_f32m4(y, r, vl);
     zl = __riscv_vfmsub_vv_f32m4(y, r, zh, vl);
     zh = __riscv_vfsub_vf_f32m4(zh, (float)1.0f, vl);
     z = __riscv_vfadd_vv_f32m4(zh, zl, vl);
 }
 
-static inline void my_log1p_second_reduction_f32m4(vfloat32m4_t xm1, vfloat32m4_t y, vint32m4_t e,
-    vfloat32m4_t& z, vfloat32m4_t& zh, vfloat32m4_t& zl, vfloat32m4_t& logR, size_t vl)
+static inline void my_log1p_second_reduction_f32m4(vfloat32m4_t xm1, vfloat32m4_t r,
+    vint32m4_t e, vfloat32m4_t& z, vfloat32m4_t& zh, vfloat32m4_t& zl, size_t vl)
 {
-    vfloat32m4_t r;
-    my_log_table_values_f32m4(y, logR, r, vl);
-
     vint32m4_t pow2mei = __riscv_vadd_vx_i32m4(__riscv_vneg_v_i32m4(e, vl), (int32_t)129, vl);
     vfloat32m4_t pow2me = __riscv_vreinterpret_v_i32m4_f32m4(__riscv_vsll_vx_i32m4(pow2mei, 23, vl));
     vfloat32m4_t c = __riscv_vfmul_vv_f32m4(pow2me, r, vl);
@@ -794,8 +669,8 @@ static inline void my_log2_reconstruction_f32m4(vfloat32m4_t e, vfloat32m4_t zh,
 static inline void my_log1p_reconstruction_h_f32m4(vfloat32m4_t e, vfloat32m4_t zh,
     vfloat32m4_t zl, vfloat32m4_t p, vfloat32m4_t logR, vfloat32m4_t& res, size_t vl)
 {
-    constexpr float log2h = 0x1.62e43p-1f, log2l = -0x1.05c61p-29f;
     constexpr float factor = 0x1p100f, invfactor = 0x1p-100f;
+    constexpr float log2h = 0x1.62e43p-1f, log2l = -0x1.05c61p-29f;
 
     vfloat32m4_t rh, rl, tmp, tmph, tmpl, resl;
 

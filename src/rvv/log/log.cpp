@@ -1,10 +1,10 @@
 /*
  *========================================================
- * Copyright (c) RVVPL and Lobachevsky State University of
+ * Copyright (c) RVVPL and Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
- *
- * Copyright 2026 The RVVMF Authors (Vladislav Polozov,
- * Elena Panova)
+ * 
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova,
+ * Vladislav Polozov)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this
@@ -58,12 +58,15 @@ vfloat64m1_t __riscv_vlog_f64m1(vfloat64m1_t x, size_t avl)
     log_check_special_cases_f64m1(x, special, specialMask, vl);
 #endif
 
-    vfloat64m1_t y, e, z, zh, zl, p, logR, res;
+    vfloat64m1_t y, ef, z, zh, zl, p, r, logR, res;
+    vint64m1_t e;
+    vuint64m1_t index;
 
-    my_log_argument_reduction_f64m1(x, y, e, vl);
-    my_log_second_reduction_f64m1(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m1(x, y, e, ef, index, vl);
+    my_log_table_values_f64m1(index, r, logR, vl);
+    my_log_second_reduction_f64m1(y, r, z, zh, zl, vl);
     my_log_approximation_f64m1(z, p, vl);
-    my_log_reconstruction_h_f64m1(e, zh, zl, p, logR, res, vl);
+    my_log_reconstruction_h_f64m1(ef, zh, zl, p, logR, res, vl);
 
 #ifndef __FAST_MATH__
     res = __riscv_vmerge_vvm_f64m1(res, special, specialMask, vl);
@@ -84,12 +87,15 @@ vfloat64m1_t __riscv_vlog2_f64m1(vfloat64m1_t x, size_t avl)
     log_check_special_cases_f64m1(x, special, specialMask, vl);
 #endif
 
-    vfloat64m1_t y, e, z, zh, zl, p, logR, res;
+    vfloat64m1_t y, ef, z, zh, zl, p, r, logR, res;
+    vint64m1_t e;
+    vuint64m1_t index;
 
-    my_log_argument_reduction_f64m1(x, y, e, vl);
-    my_log_second_reduction_f64m1(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m1(x, y, e, ef, index, vl);
+    my_log_table_values_f64m1(index, r, logR, vl);
+    my_log_second_reduction_f64m1(y, r, z, zh, zl, vl);
     my_log_approximation_f64m1(z, p, vl);
-    my_log2_reconstruction_f64m1(e, zh, zl, p, logR, res, vl);
+    my_log2_reconstruction_f64m1(ef, zh, zl, p, logR, res, vl);
 
 #ifndef __FAST_MATH__
     res = __riscv_vmerge_vvm_f64m1(res, special, specialMask, vl);
@@ -111,12 +117,15 @@ vfloat64m1_t __riscv_vlog10_f64m1(vfloat64m1_t x, size_t avl)
 #endif
 
     constexpr double invLog10h = 0x1.bcb7b1526e50ep-2, invLog10l = 0x1.95355baaafad3p-57;
-    vfloat64m1_t y, e, z, zh, zl, p, logR, res, resl;
+    vfloat64m1_t y, ef, z, zh, zl, p, r, logR, res, resl;
+    vint64m1_t e;
+    vuint64m1_t index;
 
-    my_log_argument_reduction_f64m1(x, y, e, vl);
-    my_log_second_reduction_f64m1(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m1(x, y, e, ef, index, vl);
+    my_log_table_values_f64m1(index, r, logR, vl);
+    my_log_second_reduction_f64m1(y, r, z, zh, zl, vl);
     my_log_approximation_f64m1(z, p, vl);
-    my_log_reconstruction_hl_f64m1(e, zh, zl, p, logR, res, resl, vl);
+    my_log_reconstruction_hl_f64m1(ef, zh, zl, p, logR, res, resl, vl);
 
     res = mul21_f64m1(res, resl, invLog10h, invLog10l, vl);
 
@@ -139,16 +148,17 @@ vfloat64m1_t __riscv_vlog1p_f64m1(vfloat64m1_t xm1, size_t avl)
     log_check_special_cases_f64m1(xm1, special, specialMask, vl, (double)-1.0, (double)0.0);
 #endif
 
-    vfloat64m1_t xm1c, ef, y, p, logR, z, zh, zl, res;
+    vfloat64m1_t xm1c, ef, y, p, r, logR, z, zh, zl, res;
     vint64m1_t e;
+    vuint64m1_t index;
     vbool64_t linearMask;
 
     my_log1p_process_linear_f64m1(xm1, xm1c, linearMask, vl);
-    my_log1p_argument_reduction_f64m1(__riscv_vfadd_vf_f64m1(xm1c, (double)1.0, vl), y, e, ef, vl);
-    my_log1p_second_reduction_f64m1(xm1, y, e, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m1(__riscv_vfadd_vf_f64m1(xm1c, (double)1.0, vl), y, e, ef, index, vl);
+    my_log_table_values_f64m1(index, r, logR, vl);
+    my_log1p_second_reduction_f64m1(xm1c, r, e, z, zh, zl, vl);
     my_log_approximation_f64m1(z, p, vl);
-
-    my_log_reconstruction_h_f64m1(ef, zh, zl, p, logR, res, vl);
+    my_log1p_reconstruction_h_f64m1(ef, zh, zl, p, logR, res, vl);
     res = __riscv_vmerge_vvm_f64m1(res, xm1, linearMask, vl);
 
 #ifndef __FAST_MATH__
@@ -175,12 +185,15 @@ vfloat64m2_t __riscv_vlog_f64m2(vfloat64m2_t x, size_t avl)
     log_check_special_cases_f64m2(x, special, specialMask, vl);
 #endif
 
-    vfloat64m2_t y, e, z, zh, zl, p, logR, res;
+    vfloat64m2_t y, ef, z, zh, zl, p, r, logR, res;
+    vint64m2_t e;
+    vuint64m2_t index;
 
-    my_log_argument_reduction_f64m2(x, y, e, vl);
-    my_log_second_reduction_f64m2(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m2(x, y, e, ef, index, vl);
+    my_log_table_values_f64m2(index, r, logR, vl);
+    my_log_second_reduction_f64m2(y, r, z, zh, zl, vl);
     my_log_approximation_f64m2(z, p, vl);
-    my_log_reconstruction_h_f64m2(e, zh, zl, p, logR, res, vl);
+    my_log_reconstruction_h_f64m2(ef, zh, zl, p, logR, res, vl);
 
 #ifndef __FAST_MATH__
     res = __riscv_vmerge_vvm_f64m2(res, special, specialMask, vl);
@@ -201,12 +214,15 @@ vfloat64m2_t __riscv_vlog2_f64m2(vfloat64m2_t x, size_t avl)
     log_check_special_cases_f64m2(x, special, specialMask, vl);
 #endif
 
-    vfloat64m2_t y, e, z, zh, zl, p, logR, res;
+    vfloat64m2_t y, ef, z, zh, zl, p, r, logR, res;
+    vint64m2_t e;
+    vuint64m2_t index;
 
-    my_log_argument_reduction_f64m2(x, y, e, vl);
-    my_log_second_reduction_f64m2(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m2(x, y, e, ef, index, vl);
+    my_log_table_values_f64m2(index, r, logR, vl);
+    my_log_second_reduction_f64m2(y, r, z, zh, zl, vl);
     my_log_approximation_f64m2(z, p, vl);
-    my_log2_reconstruction_f64m2(e, zh, zl, p, logR, res, vl);
+    my_log2_reconstruction_f64m2(ef, zh, zl, p, logR, res, vl);
 
 #ifndef __FAST_MATH__
     res = __riscv_vmerge_vvm_f64m2(res, special, specialMask, vl);
@@ -228,12 +244,15 @@ vfloat64m2_t __riscv_vlog10_f64m2(vfloat64m2_t x, size_t avl)
 #endif
 
     constexpr double invLog10h = 0x1.bcb7b1526e50ep-2, invLog10l = 0x1.95355baaafad3p-57;
-    vfloat64m2_t y, e, z, zh, zl, p, logR, res, resl;
+    vfloat64m2_t y, ef, z, zh, zl, p, r, logR, res, resl;
+    vint64m2_t e;
+    vuint64m2_t index;
 
-    my_log_argument_reduction_f64m2(x, y, e, vl);
-    my_log_second_reduction_f64m2(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m2(x, y, e, ef, index, vl);
+    my_log_table_values_f64m2(index, r, logR, vl);
+    my_log_second_reduction_f64m2(y, r, z, zh, zl, vl);
     my_log_approximation_f64m2(z, p, vl);
-    my_log_reconstruction_hl_f64m2(e, zh, zl, p, logR, res, resl, vl);
+    my_log_reconstruction_hl_f64m2(ef, zh, zl, p, logR, res, resl, vl);
 
     res = mul21_f64m2(res, resl, invLog10h, invLog10l, vl);
 
@@ -256,16 +275,17 @@ vfloat64m2_t __riscv_vlog1p_f64m2(vfloat64m2_t xm1, size_t avl)
     log_check_special_cases_f64m2(xm1, special, specialMask, vl, (double)-1.0, (double)0.0);
 #endif
 
-    vfloat64m2_t xm1c, ef, y, p, logR, z, zh, zl, res;
+    vfloat64m2_t xm1c, ef, y, p, r, logR, z, zh, zl, res;
     vint64m2_t e;
+    vuint64m2_t index;
     vbool32_t linearMask;
 
     my_log1p_process_linear_f64m2(xm1, xm1c, linearMask, vl);
-    my_log1p_argument_reduction_f64m2(__riscv_vfadd_vf_f64m2(xm1c, (double)1.0, vl), y, e, ef, vl);
-    my_log1p_second_reduction_f64m2(xm1, y, e, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m2(__riscv_vfadd_vf_f64m2(xm1c, (double)1.0, vl), y, e, ef, index, vl);
+    my_log_table_values_f64m2(index, r, logR, vl);
+    my_log1p_second_reduction_f64m2(xm1, r, e, z, zh, zl, vl);
     my_log_approximation_f64m2(z, p, vl);
-
-    my_log_reconstruction_h_f64m2(ef, zh, zl, p, logR, res, vl);
+    my_log1p_reconstruction_h_f64m2(ef, zh, zl, p, logR, res, vl);
     res = __riscv_vmerge_vvm_f64m2(res, xm1, linearMask, vl);
 
 #ifndef __FAST_MATH__
@@ -292,12 +312,15 @@ vfloat64m4_t __riscv_vlog_f64m4(vfloat64m4_t x, size_t avl)
     log_check_special_cases_f64m4(x, special, specialMask, vl);
 #endif
 
-    vfloat64m4_t y, e, z, zh, zl, p, logR, res;
+    vfloat64m4_t y, ef, z, zh, zl, p, r, logR, res;
+    vint64m4_t e;
+    vuint64m4_t index;
 
-    my_log_argument_reduction_f64m4(x, y, e, vl);
-    my_log_second_reduction_f64m4(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m4(x, y, e, ef, index, vl);
+    my_log_table_values_f64m4(index, r, logR, vl);
+    my_log_second_reduction_f64m4(y, r, z, zh, zl, vl);
     my_log_approximation_f64m4(z, p, vl);
-    my_log_reconstruction_h_f64m4(e, zh, zl, p, logR, res, vl);
+    my_log_reconstruction_h_f64m4(ef, zh, zl, p, logR, res, vl);
 
 #ifndef __FAST_MATH__
     res = __riscv_vmerge_vvm_f64m4(res, special, specialMask, vl);
@@ -318,12 +341,15 @@ vfloat64m4_t __riscv_vlog2_f64m4(vfloat64m4_t x, size_t avl)
     log_check_special_cases_f64m4(x, special, specialMask, vl);
 #endif
 
-    vfloat64m4_t y, e, z, zh, zl, p, logR, res;
+    vfloat64m4_t y, ef, z, zh, zl, p, r, logR, res;
+    vint64m4_t e;
+    vuint64m4_t index;
 
-    my_log_argument_reduction_f64m4(x, y, e, vl);
-    my_log_second_reduction_f64m4(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m4(x, y, e, ef, index, vl);
+    my_log_table_values_f64m4(index, r, logR, vl);
+    my_log_second_reduction_f64m4(y, r, z, zh, zl, vl);
     my_log_approximation_f64m4(z, p, vl);
-    my_log2_reconstruction_f64m4(e, zh, zl, p, logR, res, vl);
+    my_log2_reconstruction_f64m4(ef, zh, zl, p, logR, res, vl);
 
 #ifndef __FAST_MATH__
     res = __riscv_vmerge_vvm_f64m4(res, special, specialMask, vl);
@@ -345,12 +371,15 @@ vfloat64m4_t __riscv_vlog10_f64m4(vfloat64m4_t x, size_t avl)
 #endif
 
     constexpr double invLog10h = 0x1.bcb7b1526e50ep-2, invLog10l = 0x1.95355baaafad3p-57;
-    vfloat64m4_t y, e, z, zh, zl, p, logR, res, resl;
+    vfloat64m4_t y, ef, z, zh, zl, p, r, logR, res, resl;
+    vint64m4_t e;
+    vuint64m4_t index;
 
-    my_log_argument_reduction_f64m4(x, y, e, vl);
-    my_log_second_reduction_f64m4(y, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m4(x, y, e, ef, index, vl);
+    my_log_table_values_f64m4(index, r, logR, vl);
+    my_log_second_reduction_f64m4(y, r, z, zh, zl, vl);
     my_log_approximation_f64m4(z, p, vl);
-    my_log_reconstruction_hl_f64m4(e, zh, zl, p, logR, res, resl, vl);
+    my_log_reconstruction_hl_f64m4(ef, zh, zl, p, logR, res, resl, vl);
 
     res = mul21_f64m4(res, resl, invLog10h, invLog10l, vl);
 
@@ -373,16 +402,17 @@ vfloat64m4_t __riscv_vlog1p_f64m4(vfloat64m4_t xm1, size_t avl)
     log_check_special_cases_f64m4(xm1, special, specialMask, vl, (double)-1.0, (double)0.0);
 #endif
 
-    vfloat64m4_t xm1c, ef, y, p, logR, z, zh, zl, res;
+    vfloat64m4_t xm1c, ef, y, p, r, logR, z, zh, zl, res;
     vint64m4_t e;
+    vuint64m4_t index;
     vbool16_t linearMask;
 
     my_log1p_process_linear_f64m4(xm1, xm1c, linearMask, vl);
-    my_log1p_argument_reduction_f64m4(__riscv_vfadd_vf_f64m4(xm1c, (double)1.0, vl), y, e, ef, vl);
-    my_log1p_second_reduction_f64m4(xm1, y, e, z, zh, zl, logR, vl);
+    my_log_argument_reduction_f64m4(__riscv_vfadd_vf_f64m4(xm1c, (double)1.0, vl), y, e, ef, index, vl);
+    my_log_table_values_f64m4(index, r, logR, vl);
+    my_log1p_second_reduction_f64m4(xm1, r, e, z, zh, zl, vl);
     my_log_approximation_f64m4(z, p, vl);
-
-    my_log_reconstruction_h_f64m4(ef, zh, zl, p, logR, res, vl);
+    my_log1p_reconstruction_h_f64m4(ef, zh, zl, p, logR, res, vl);
     res = __riscv_vmerge_vvm_f64m4(res, xm1, linearMask, vl);
 
 #ifndef __FAST_MATH__

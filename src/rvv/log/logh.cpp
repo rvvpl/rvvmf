@@ -1,10 +1,10 @@
 /*
  *========================================================
- * Copyright (c) RVVPL and Lobachevsky State University of
+ * Copyright (c) RVVPL and Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
- *
- * Copyright 2026 The RVVMF Authors (Vladislav Polozov,
- * Elena Panova)
+ * 
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova,
+ * Vladislav Polozov)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this
@@ -61,12 +61,15 @@ vfloat16m1_t __riscv_vlog_f16m1(vfloat16m1_t x, size_t avl)
     log_check_special_cases_f16m1(x, special, specialMask, vl);
 #endif
 
-    vfloat16m1_t y, e, z, zh, zl, p, logR, logRl, res;
+    vfloat16m1_t y, ef, z, zh, zl, p, r, logR, logRl, res;
+    vint16m1_t e;
+    vuint16m1_t index;
 
-    my_log_argument_reduction_f16m1(x, y, e, vl);
-    my_log_second_reduction_f16m1(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m1(x, y, e, ef, index, vl);
+    my_log_table_values_f16m1(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m1(y, r, z, zh, zl, vl);
     my_log_approximation_f16m1(z, p, vl);
-    my_log_reconstruction_h_f16m1(e, zh, zl, p, logR, logRl, res, vl);
+    my_log_reconstruction_h_f16m1(ef, zh, zl, p, logR, logRl, res, vl);
 
     res = __riscv_vfmul_vf_f16m1(res, LOG_INV_FACTOR_COEFF_F16, vl);
 
@@ -89,12 +92,15 @@ vfloat16m1_t __riscv_vlog2_f16m1(vfloat16m1_t x, size_t avl)
     log_check_special_cases_f16m1(x, special, specialMask, vl);
 #endif
 
-    vfloat16m1_t y, e, z, zh, zl, p, logR, logRl, res;
+    vfloat16m1_t y, ef, z, zh, zl, p, r, logR, logRl, res;
+    vint16m1_t e;
+    vuint16m1_t index;
 
-    my_log_argument_reduction_f16m1(x, y, e, vl);
-    my_log_second_reduction_f16m1(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m1(x, y, e, ef, index, vl);
+    my_log_table_values_f16m1(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m1(y, r, z, zh, zl, vl);
     my_log_approximation_f16m1(z, p, vl);
-    my_log2_reconstruction_f16m1(e, zh, zl, p, logR, logRl, res, vl);
+    my_log2_reconstruction_f16m1(ef, zh, zl, p, logR, logRl, res, vl);
 
     res = __riscv_vfmul_vf_f16m1(res, LOG_INV_FACTOR_COEFF_F16, vl);
 
@@ -118,12 +124,15 @@ vfloat16m1_t __riscv_vlog10_f16m1(vfloat16m1_t x, size_t avl)
 #endif
 
     constexpr _Float16 invLog10h = 0x1.bccp-2f16, invLog10l = -0x1.0ap-15f16;
-    vfloat16m1_t y, e, z, zh, zl, p, logR, logRl, res, resl;
+    vfloat16m1_t y, ef, z, zh, zl, p, r, logR, logRl, res, resl;
+    vint16m1_t e;
+    vuint16m1_t index;
 
-    my_log_argument_reduction_f16m1(x, y, e, vl);
-    my_log_second_reduction_f16m1(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m1(x, y, e, ef, index, vl);
+    my_log_table_values_f16m1(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m1(y, r, z, zh, zl, vl);
     my_log_approximation_f16m1(z, p, vl);
-    my_log_reconstruction_hl_f16m1(e, zh, zl, p, logR, logRl, res, resl, vl);
+    my_log_reconstruction_hl_f16m1(ef, zh, zl, p, logR, logRl, res, resl, vl);
 
     res = mul21_f16m1(res, resl, invLog10h, invLog10l, vl);
     res = __riscv_vfmul_vf_f16m1(res, LOG_INV_FACTOR_COEFF_F16, vl);
@@ -147,13 +156,15 @@ vfloat16m1_t __riscv_vlog1p_f16m1(vfloat16m1_t xm1, size_t avl)
     log_check_special_cases_f16m1(xm1, special, specialMask, vl, (_Float16)-1.0f, (_Float16)0.0f);
 #endif
 
-    vfloat16m1_t xm1c, ef, y, p, logR, logRl, z, zh, zl, res;
+    vfloat16m1_t xm1c, ef, y, p, r, logR, logRl, z, zh, zl, res;
     vint16m1_t e;
+    vuint16m1_t index;
     vbool16_t linearMask;
 
     my_log1p_process_linear_f16m1(xm1, xm1c, linearMask, vl);
-    my_log1p_argument_reduction_f16m1(__riscv_vfadd_vf_f16m1(xm1c, (_Float16)1.0f, vl), y, e, ef, vl);
-    my_log1p_second_reduction_f16m1(xm1, y, e, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m1(__riscv_vfadd_vf_f16m1(xm1c, (_Float16)1.0f16, vl), y, e, ef, index, vl);
+    my_log_table_values_f16m1(index, r, logR, logRl, vl);
+    my_log1p_second_reduction_f16m1(xm1c, r, e, z, zh, zl, vl);
     my_log1p_approximation_f16m1(z, p, vl);
     my_log1p_reconstruction_h_f16m1(ef, zh, zl, p, logR, logRl, res, vl);
     res = __riscv_vfmul_vf_f16m1(res, LOG_INV_FACTOR_COEFF_F16, vl);
@@ -183,12 +194,15 @@ vfloat16m2_t __riscv_vlog_f16m2(vfloat16m2_t x, size_t avl)
     log_check_special_cases_f16m2(x, special, specialMask, vl);
 #endif
 
-    vfloat16m2_t y, e, z, zh, zl, p, logR, logRl, res;
+    vfloat16m2_t y, ef, z, zh, zl, p, r, logR, logRl, res;
+    vint16m2_t e;
+    vuint16m2_t index;
 
-    my_log_argument_reduction_f16m2(x, y, e, vl);
-    my_log_second_reduction_f16m2(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m2(x, y, e, ef, index, vl);
+    my_log_table_values_f16m2(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m2(y, r, z, zh, zl, vl);
     my_log_approximation_f16m2(z, p, vl);
-    my_log_reconstruction_h_f16m2(e, zh, zl, p, logR, logRl, res, vl);
+    my_log_reconstruction_h_f16m2(ef, zh, zl, p, logR, logRl, res, vl);
 
     res = __riscv_vfmul_vf_f16m2(res, LOG_INV_FACTOR_COEFF_F16, vl);
 
@@ -211,12 +225,15 @@ vfloat16m2_t __riscv_vlog2_f16m2(vfloat16m2_t x, size_t avl)
     log_check_special_cases_f16m2(x, special, specialMask, vl);
 #endif
 
-    vfloat16m2_t y, e, z, zh, zl, p, logR, logRl, res;
+    vfloat16m2_t y, ef, z, zh, zl, p, r, logR, logRl, res;
+    vint16m2_t e;
+    vuint16m2_t index;
 
-    my_log_argument_reduction_f16m2(x, y, e, vl);
-    my_log_second_reduction_f16m2(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m2(x, y, e, ef, index, vl);
+    my_log_table_values_f16m2(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m2(y, r, z, zh, zl, vl);
     my_log_approximation_f16m2(z, p, vl);
-    my_log2_reconstruction_f16m2(e, zh, zl, p, logR, logRl, res, vl);
+    my_log2_reconstruction_f16m2(ef, zh, zl, p, logR, logRl, res, vl);
 
     res = __riscv_vfmul_vf_f16m2(res, LOG_INV_FACTOR_COEFF_F16, vl);
 
@@ -240,12 +257,15 @@ vfloat16m2_t __riscv_vlog10_f16m2(vfloat16m2_t x, size_t avl)
 #endif
 
     constexpr _Float16 invLog10h = 0x1.bccp-2f16, invLog10l = -0x1.0ap-15f16;
-    vfloat16m2_t y, e, z, zh, zl, p, logR, logRl, res, resl;
+    vfloat16m2_t y, ef, z, zh, zl, p, r, logR, logRl, res, resl;
+    vint16m2_t e;
+    vuint16m2_t index;
 
-    my_log_argument_reduction_f16m2(x, y, e, vl);
-    my_log_second_reduction_f16m2(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m2(x, y, e, ef, index, vl);
+    my_log_table_values_f16m2(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m2(y, r, z, zh, zl, vl);
     my_log_approximation_f16m2(z, p, vl);
-    my_log_reconstruction_hl_f16m2(e, zh, zl, p, logR, logRl, res, resl, vl);
+    my_log_reconstruction_hl_f16m2(ef, zh, zl, p, logR, logRl, res, resl, vl);
 
     res = mul21_f16m2(res, resl, invLog10h, invLog10l, vl);
     res = __riscv_vfmul_vf_f16m2(res, LOG_INV_FACTOR_COEFF_F16, vl);
@@ -269,13 +289,15 @@ vfloat16m2_t __riscv_vlog1p_f16m2(vfloat16m2_t xm1, size_t avl)
     log_check_special_cases_f16m2(xm1, special, specialMask, vl, (_Float16)-1.0f, (_Float16)0.0f);
 #endif
 
-    vfloat16m2_t xm1c, ef, y, p, logR, logRl, z, zh, zl, res;
+    vfloat16m2_t xm1c, ef, y, p, r, logR, logRl, z, zh, zl, res;
     vint16m2_t e;
+    vuint16m2_t index;
     vbool8_t linearMask;
 
     my_log1p_process_linear_f16m2(xm1, xm1c, linearMask, vl);
-    my_log1p_argument_reduction_f16m2(__riscv_vfadd_vf_f16m2(xm1c, (_Float16)1.0f, vl), y, e, ef, vl);
-    my_log1p_second_reduction_f16m2(xm1, y, e, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m2(__riscv_vfadd_vf_f16m2(xm1c, (_Float16)1.0f16, vl), y, e, ef, index, vl);
+    my_log_table_values_f16m2(index, r, logR, logRl, vl);
+    my_log1p_second_reduction_f16m2(xm1c, r, e, z, zh, zl, vl);
     my_log1p_approximation_f16m2(z, p, vl);
     my_log1p_reconstruction_h_f16m2(ef, zh, zl, p, logR, logRl, res, vl);
     res = __riscv_vfmul_vf_f16m2(res, LOG_INV_FACTOR_COEFF_F16, vl);
@@ -305,12 +327,15 @@ vfloat16m4_t __riscv_vlog_f16m4(vfloat16m4_t x, size_t avl)
     log_check_special_cases_f16m4(x, special, specialMask, vl);
 #endif
 
-    vfloat16m4_t y, e, z, zh, zl, p, logR, logRl, res;
+    vfloat16m4_t y, ef, z, zh, zl, p, r, logR, logRl, res;
+    vint16m4_t e;
+    vuint16m4_t index;
 
-    my_log_argument_reduction_f16m4(x, y, e, vl);
-    my_log_second_reduction_f16m4(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m4(x, y, e, ef, index, vl);
+    my_log_table_values_f16m4(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m4(y, r, z, zh, zl, vl);
     my_log_approximation_f16m4(z, p, vl);
-    my_log_reconstruction_h_f16m4(e, zh, zl, p, logR, logRl, res, vl);
+    my_log_reconstruction_h_f16m4(ef, zh, zl, p, logR, logRl, res, vl);
 
     res = __riscv_vfmul_vf_f16m4(res, LOG_INV_FACTOR_COEFF_F16, vl);
 
@@ -333,12 +358,15 @@ vfloat16m4_t __riscv_vlog2_f16m4(vfloat16m4_t x, size_t avl)
     log_check_special_cases_f16m4(x, special, specialMask, vl);
 #endif
 
-    vfloat16m4_t y, e, z, zh, zl, p, logR, logRl, res;
+    vfloat16m4_t y, ef, z, zh, zl, p, r, logR, logRl, res;
+    vint16m4_t e;
+    vuint16m4_t index;
 
-    my_log_argument_reduction_f16m4(x, y, e, vl);
-    my_log_second_reduction_f16m4(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m4(x, y, e, ef, index, vl);
+    my_log_table_values_f16m4(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m4(y, r, z, zh, zl, vl);
     my_log_approximation_f16m4(z, p, vl);
-    my_log2_reconstruction_f16m4(e, zh, zl, p, logR, logRl, res, vl);
+    my_log2_reconstruction_f16m4(ef, zh, zl, p, logR, logRl, res, vl);
 
     res = __riscv_vfmul_vf_f16m4(res, LOG_INV_FACTOR_COEFF_F16, vl);
 
@@ -362,12 +390,15 @@ vfloat16m4_t __riscv_vlog10_f16m4(vfloat16m4_t x, size_t avl)
 #endif
 
     constexpr _Float16 invLog10h = 0x1.bccp-2f16, invLog10l = -0x1.0ap-15f16;
-    vfloat16m4_t y, e, z, zh, zl, p, logR, logRl, res, resl;
+    vfloat16m4_t y, ef, z, zh, zl, p, r, logR, logRl, res, resl;
+    vint16m4_t e;
+    vuint16m4_t index;
 
-    my_log_argument_reduction_f16m4(x, y, e, vl);
-    my_log_second_reduction_f16m4(y, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m4(x, y, e, ef, index, vl);
+    my_log_table_values_f16m4(index, r, logR, logRl, vl);
+    my_log_second_reduction_f16m4(y, r, z, zh, zl, vl);
     my_log_approximation_f16m4(z, p, vl);
-    my_log_reconstruction_hl_f16m4(e, zh, zl, p, logR, logRl, res, resl, vl);
+    my_log_reconstruction_hl_f16m4(ef, zh, zl, p, logR, logRl, res, resl, vl);
 
     res = mul21_f16m4(res, resl, invLog10h, invLog10l, vl);
     res = __riscv_vfmul_vf_f16m4(res, LOG_INV_FACTOR_COEFF_F16, vl);
@@ -391,13 +422,15 @@ vfloat16m4_t __riscv_vlog1p_f16m4(vfloat16m4_t xm1, size_t avl)
     log_check_special_cases_f16m4(xm1, special, specialMask, vl, (_Float16)-1.0f, (_Float16)0.0f);
 #endif
 
-    vfloat16m4_t xm1c, ef, y, p, logR, logRl, z, zh, zl, res;
+    vfloat16m4_t xm1c, ef, y, p, r, logR, logRl, z, zh, zl, res;
     vint16m4_t e;
+    vuint16m4_t index;
     vbool4_t linearMask;
 
     my_log1p_process_linear_f16m4(xm1, xm1c, linearMask, vl);
-    my_log1p_argument_reduction_f16m4(__riscv_vfadd_vf_f16m4(xm1c, (_Float16)1.0f, vl), y, e, ef, vl);
-    my_log1p_second_reduction_f16m4(xm1, y, e, z, zh, zl, logR, logRl, vl);
+    my_log_argument_reduction_f16m4(__riscv_vfadd_vf_f16m4(xm1c, (_Float16)1.0f16, vl), y, e, ef, index, vl);
+    my_log_table_values_f16m4(index, r, logR, logRl, vl);
+    my_log1p_second_reduction_f16m4(xm1c, r, e, z, zh, zl, vl);
     my_log1p_approximation_f16m4(z, p, vl);
     my_log1p_reconstruction_h_f16m4(ef, zh, zl, p, logR, logRl, res, vl);
     res = __riscv_vfmul_vf_f16m4(res, LOG_INV_FACTOR_COEFF_F16, vl);
