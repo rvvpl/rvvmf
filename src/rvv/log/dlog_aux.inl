@@ -1,11 +1,11 @@
 /*
  *========================================================
- * Copyright (c) RVVPL and Lobachevsky State University of
+ * Copyright (c) The Lobachevsky State University of
  * Nizhny Novgorod and its affiliates. All rights reserved.
  *
- * Copyright 2026 The RVVMF Authors (Vladislav Polozov,
- * Elena Panova)
- *
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova,
+ * Vladislav Polozov)
+ *)
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this
  * source tree)
@@ -82,86 +82,45 @@ static inline void log_check_special_cases_f64m1(vfloat64m1_t& x, vfloat64m1_t& 
     x = __riscv_vfmerge_vfm_f64m1(x, defaultArgValue, specialMask, vl);
 }
 
-static inline void decompose_number_f64m1(vfloat64m1_t x, vfloat64m1_t& m, vint64m1_t& e, size_t vl)
+static inline void my_log_argument_reduction_f64m1(vfloat64m1_t x, vfloat64m1_t& y,
+    vint64m1_t& e, vfloat64m1_t& ef, vuint64m1_t& index, size_t vl)
 {
-    vuint64m1_t resu = __riscv_vreinterpret_v_f64m1_u64m1(x);
-    resu = __riscv_vand_vx_u64m1(resu, (uint64_t)0x7ff0000000000000, vl);
-    resu = __riscv_vsrl_vx_u64m1(resu, (uint64_t)52, vl);
-    e = __riscv_vreinterpret_v_u64m1_i64m1(resu);
-    e = __riscv_vsub_vx_i64m1(e, (int64_t)1023, vl);
+    constexpr uint64_t magic_const_1 = 0x3fe5560000000000;
+    constexpr size_t tshift = 52 - 8 - 3;
 
     vuint64m1_t xi = __riscv_vreinterpret_v_f64m1_u64m1(x);
-    xi = __riscv_vand_vx_u64m1(xi, (uint64_t)0x000fffffffffffff, vl);
-    xi = __riscv_vor_vx_u64m1(xi, (uint64_t)0x3ff0000000000000, vl);
-    m = __riscv_vreinterpret_v_u64m1_f64m1(xi);
-}
+    vbool64_t msubn = __riscv_vmsltu_vx_u64m1_b64(xi, 0x0010000000000000, vl);
+    x = __riscv_vfmul_vf_f64m1_mu(msubn, x, x, (double)0x1p53, vl);
+    xi = __riscv_vreinterpret_v_f64m1_u64m1(x);
 
-static inline void my_log1p_argument_reduction_f64m1(vfloat64m1_t x, vfloat64m1_t& y,
-    vint64m1_t& e, vfloat64m1_t& ef, size_t vl)
-{
-    constexpr double ap1 = 0x1.556p0;
+    vuint64m1_t magic_number = __riscv_vsub_vx_u64m1(xi, magic_const_1, vl);
+    e = __riscv_vsra_vx_i64m1(__riscv_vreinterpret_v_u64m1_i64m1(magic_number), (size_t)52, vl);
+    e = __riscv_vsub_vx_i64m1_mu(msubn, e, e, (int64_t)53, vl);
+    xi = __riscv_vsub_vv_u64m1(xi, __riscv_vand_vx_u64m1(magic_number, (uint64_t)0xfff0000000000000, vl), vl);
+    y = __riscv_vreinterpret_v_u64m1_f64m1(xi);
 
-    vint64m1_t et;
-    vfloat64m1_t yt;
-    decompose_number_f64m1(x, y, e, vl);
-
-    vbool64_t subnormalMask = __riscv_vmflt_vf_f64m1_b64(x, (double)0x1p-1022, vl);
-    yt = __riscv_vfsub_vf_f64m1(y, (double)1.0, vl);
-    decompose_number_f64m1(yt, yt, et, vl);
-    et = __riscv_vadd_vv_i64m1(__riscv_vadd_vx_i64m1(e, (int64_t)1, vl), et, vl);
-    y = __riscv_vmerge_vvm_f64m1(y, yt, subnormalMask, vl);
-    e = __riscv_vmerge_vvm_i64m1(e, et, subnormalMask, vl);
-
-    vbool64_t mask = __riscv_vmfge_vf_f64m1_b64(y, ap1, vl);
-    yt = __riscv_vfmul_vf_f64m1(y, (double)0.5, vl);
-    et = __riscv_vadd_vx_i64m1(e, (int64_t)1, vl);
-    y = __riscv_vmerge_vvm_f64m1(y, yt, mask, vl);
-    e = __riscv_vmerge_vvm_i64m1(e, et, mask, vl);
-
+    index = __riscv_vsrl_vx_u64m1(__riscv_vand_vx_u64m1(magic_number, (uint64_t)0x000ff00000000000, vl), tshift, vl);
     ef = __riscv_vfcvt_f_x_v_f64m1(e, vl);
 }
 
-static inline void my_log_argument_reduction_f64m1(vfloat64m1_t x, vfloat64m1_t& y, vfloat64m1_t& ef, size_t vl)
+static inline void my_log_table_values_f64m1(vuint64m1_t index, vfloat64m1_t& r, vfloat64m1_t& logR, size_t vl)
 {
-    vint64m1_t e;
-    my_log1p_argument_reduction_f64m1(x, y, e, ef, vl);
-}
-
-static inline void my_log_table_values_f64m1(vfloat64m1_t y, vfloat64m1_t& logR, vfloat64m1_t& r, size_t vl)
-{
-    constexpr size_t k = 8;
-    constexpr double u = 0x1.7e5035f940d7fp0, v = 0x1.17e5035f9409bp-7;
-    constexpr size_t tshift = 52 - k;
-
-    vuint64m1_t index = __riscv_vreinterpret_v_f64m1_u64m1(
-        __riscv_vfmadd_vf_f64m1(y, u, __riscv_vfmv_v_f_f64m1(v, vl), vl));
-    index = __riscv_vand_vx_u64m1(index, (uint64_t)0x000fffffffffffff, vl);
-    index = __riscv_vsrl_vx_u64m1(index, tshift, vl);
-
-    index = __riscv_vmul_vx_u64m1(index, sizeof(double), vl);
-
     logR = __riscv_vloxei64_v_f64m1(table_log_R, index, vl);
     r = __riscv_vloxei64_v_f64m1(table_R, index, vl);
 }
 
-static inline void my_log_second_reduction_f64m1(vfloat64m1_t y, vfloat64m1_t& z,
-    vfloat64m1_t& zh, vfloat64m1_t& zl, vfloat64m1_t& logR, size_t vl)
+static inline void my_log_second_reduction_f64m1(vfloat64m1_t y, vfloat64m1_t r,
+    vfloat64m1_t& z, vfloat64m1_t& zh, vfloat64m1_t& zl, size_t vl)
 {
-    vfloat64m1_t r;
-    my_log_table_values_f64m1(y, logR, r, vl);
-
     zh = __riscv_vfmul_vv_f64m1(y, r, vl);
     zl = __riscv_vfmsub_vv_f64m1(y, r, zh, vl);
     zh = __riscv_vfsub_vf_f64m1(zh, (double)1.0, vl);
     z = __riscv_vfadd_vv_f64m1(zh, zl, vl);
 }
 
-static inline void my_log1p_second_reduction_f64m1(vfloat64m1_t xm1, vfloat64m1_t& y,
-    vint64m1_t e, vfloat64m1_t& z, vfloat64m1_t& zh, vfloat64m1_t& zl, vfloat64m1_t& logR, size_t vl)
+static inline void my_log1p_second_reduction_f64m1(vfloat64m1_t xm1, vfloat64m1_t r,
+    vint64m1_t e, vfloat64m1_t& z, vfloat64m1_t& zh, vfloat64m1_t& zl, size_t vl)
 {
-    vfloat64m1_t r;
-    my_log_table_values_f64m1(y, logR, r, vl);
-
     vint64m1_t pow2mei = __riscv_vadd_vx_i64m1(__riscv_vneg_v_i64m1(e, vl), (int64_t)1025, vl);
     vfloat64m1_t pow2me = __riscv_vreinterpret_v_i64m1_f64m1(__riscv_vsll_vx_i64m1(pow2mei, 52, vl));
     vfloat64m1_t c = __riscv_vfmul_vv_f64m1(pow2me, r, vl);
@@ -169,7 +128,9 @@ static inline void my_log1p_second_reduction_f64m1(vfloat64m1_t xm1, vfloat64m1_
     vfloat64m1_t tmph, tmpl, sh, sl;
     tmph = __riscv_vfmadd_vv_f64m1(xm1, c, c, vl);
     sh = __riscv_vfsub_vv_f64m1(tmph, c, vl);
-    sl = __riscv_vfsub_vv_f64m1(tmph, __riscv_vfadd_vv_f64m1(sh, c, vl), vl);
+    sl = __riscv_vfadd_vv_f64m1(sh, c, vl);
+    sl = __riscv_vfsub_vv_f64m1(__riscv_vfsub_vv_f64m1(tmph, sl, vl),
+        __riscv_vfadd_vv_f64m1(c, __riscv_vfsub_vv_f64m1(sh, sl, vl), vl), vl);
     tmpl = __riscv_vfmsub_vv_f64m1(xm1, c, sh, vl);
     zh = __riscv_vfsub_vf_f64m1(tmph, (double)4.0, vl);
     zl = __riscv_vfsub_vv_f64m1(tmph, __riscv_vfadd_vf_f64m1(zh, (double)4.0, vl), vl);
@@ -254,6 +215,33 @@ static inline void my_log2_reconstruction_f64m1(vfloat64m1_t e, vfloat64m1_t zh,
     res = __riscv_vfadd_vv_f64m1(rh, __riscv_vfadd_vv_f64m1(__riscv_vfsub_vv_f64m1(rl, sl, vl), tmp, vl), vl);
 }
 
+static inline void my_log1p_reconstruction_h_f64m1(vfloat64m1_t e, vfloat64m1_t zh,
+    vfloat64m1_t zl, vfloat64m1_t p, vfloat64m1_t logR, vfloat64m1_t& res, size_t vl)
+{
+    constexpr double factor = 0x1p500, invfactor = 0x1p-500;
+    constexpr double log2h = 0x1.62e42fefa39efp-1, log2l = 0x1.abc9e3b39803fp-56*factor;
+
+    vfloat64m1_t rh, rl, tmp, tmph, tmpl, resl;
+
+    zl = __riscv_vfmul_vf_f64m1(zl, factor, vl);
+    tmp = __riscv_vfmadd_vv_f64m1(p, zl, zl, vl);
+    tmpl = __riscv_vfmsub_vv_f64m1(p, zl, __riscv_vfsub_vv_f64m1(tmp, zl, vl), vl);
+    p = __riscv_vfmul_vf_f64m1(p, factor, vl);
+    tmph = __riscv_vfmadd_vv_f64m1(p, zh, tmp, vl);
+    tmpl = __riscv_vfadd_vv_f64m1(tmpl, __riscv_vfmsub_vv_f64m1(
+        p, zh, __riscv_vfsub_vv_f64m1(tmph, tmp, vl), vl), vl);
+    tmph = __riscv_vfmadd_vf_f64m1(e, log2l, tmph, vl);
+    res = __riscv_vfsub_vv_f64m1(zh, logR, vl);
+    tmpl = __riscv_vfadd_vv_f64m1(tmpl, __riscv_vfmsub_vf_f64m1(
+        __riscv_vfsub_vv_f64m1(zh, res, vl), factor, __riscv_vfmul_vf_f64m1(logR, factor, vl), vl), vl);
+    rh = __riscv_vfmadd_vf_f64m1(e, log2h, res, vl);
+    rl = __riscv_vfadd_vv_f64m1(res, __riscv_vfmsub_vf_f64m1(e, log2h, rh, vl), vl);
+    rl = __riscv_vfmadd_vf_f64m1(rl, factor, tmpl, vl);
+    vfloat64m1_t tmp1h = __riscv_vfmadd_vf_f64m1(tmph, invfactor, rh, vl);
+    vfloat64m1_t tmp1l = __riscv_vfmadd_vf_f64m1(tmph, invfactor, __riscv_vfsub_vv_f64m1(rh, tmp1h, vl), vl);
+    res = __riscv_vfmadd_vf_f64m1(__riscv_vfmadd_vf_f64m1(tmp1l, factor, rl, vl), invfactor, tmp1h, vl);
+}
+
 static inline void my_log1p_process_linear_f64m1(const vfloat64m1_t& xm1, vfloat64m1_t& xm1c,
     vbool64_t& linearMask, size_t vl)
 {
@@ -327,86 +315,46 @@ static inline void log_check_special_cases_f64m2(vfloat64m2_t& x, vfloat64m2_t& 
     x = __riscv_vfmerge_vfm_f64m2(x, defaultArgValue, specialMask, vl);
 }
 
-static inline void decompose_number_f64m2(vfloat64m2_t x, vfloat64m2_t& m, vint64m2_t& e, size_t vl)
+static inline void my_log_argument_reduction_f64m2(vfloat64m2_t x, vfloat64m2_t& y,
+    vint64m2_t& e, vfloat64m2_t& ef, vuint64m2_t& index, size_t vl)
 {
-    vuint64m2_t resu = __riscv_vreinterpret_v_f64m2_u64m2(x);
-    resu = __riscv_vand_vx_u64m2(resu, (uint64_t)0x7ff0000000000000, vl);
-    resu = __riscv_vsrl_vx_u64m2(resu, (uint64_t)52, vl);
-    e = __riscv_vreinterpret_v_u64m2_i64m2(resu);
-    e = __riscv_vsub_vx_i64m2(e, (int64_t)1023, vl);
+    constexpr uint64_t magic_const_1 = 0x3fe5560000000000;
+    constexpr size_t tshift = 52 - 8 - 3;
 
     vuint64m2_t xi = __riscv_vreinterpret_v_f64m2_u64m2(x);
-    xi = __riscv_vand_vx_u64m2(xi, (uint64_t)0x000fffffffffffff, vl);
-    xi = __riscv_vor_vx_u64m2(xi, (uint64_t)0x3ff0000000000000, vl);
-    m = __riscv_vreinterpret_v_u64m2_f64m2(xi);
-}
+    vbool32_t msubn = __riscv_vmsltu_vx_u64m2_b32(xi, 0x0010000000000000, vl);
+    x = __riscv_vfmul_vf_f64m2_mu(msubn, x, x, (double)0x1p53, vl);
+    xi = __riscv_vreinterpret_v_f64m2_u64m2(x);
 
-static inline void my_log1p_argument_reduction_f64m2(vfloat64m2_t x, vfloat64m2_t& y,
-    vint64m2_t& e, vfloat64m2_t& ef, size_t vl)
-{
-    constexpr double ap1 = 0x1.556p0;
+    vuint64m2_t magic_number = __riscv_vsub_vx_u64m2(xi, magic_const_1, vl);
+    e = __riscv_vsra_vx_i64m2(__riscv_vreinterpret_v_u64m2_i64m2(magic_number), (size_t)52, vl);
+    e = __riscv_vsub_vx_i64m2_mu(msubn, e, e, (int64_t)53, vl);
+    xi = __riscv_vsub_vv_u64m2(xi, __riscv_vand_vx_u64m2(magic_number, (uint64_t)0xfff0000000000000, vl), vl);
+    y = __riscv_vreinterpret_v_u64m2_f64m2(xi);
 
-    vint64m2_t et;
-    vfloat64m2_t yt;
-    decompose_number_f64m2(x, y, e, vl);
-
-    vbool32_t subnormalMask = __riscv_vmflt_vf_f64m2_b32(x, (double)0x1p-1022, vl);
-    yt = __riscv_vfsub_vf_f64m2(y, (double)1.0, vl);
-    decompose_number_f64m2(yt, yt, et, vl);
-    et = __riscv_vadd_vv_i64m2(__riscv_vadd_vx_i64m2(e, (int64_t)1, vl), et, vl);
-    y = __riscv_vmerge_vvm_f64m2(y, yt, subnormalMask, vl);
-    e = __riscv_vmerge_vvm_i64m2(e, et, subnormalMask, vl);
-
-    vbool32_t mask = __riscv_vmfge_vf_f64m2_b32(y, ap1, vl);
-    yt = __riscv_vfmul_vf_f64m2(y, (double)0.5, vl);
-    et = __riscv_vadd_vx_i64m2(e, (int64_t)1, vl);
-    y = __riscv_vmerge_vvm_f64m2(y, yt, mask, vl);
-    e = __riscv_vmerge_vvm_i64m2(e, et, mask, vl);
-
+    index = __riscv_vsrl_vx_u64m2(__riscv_vand_vx_u64m2(magic_number, (uint64_t)0x000ff00000000000, vl), tshift, vl);
     ef = __riscv_vfcvt_f_x_v_f64m2(e, vl);
 }
 
-static inline void my_log_argument_reduction_f64m2(vfloat64m2_t x, vfloat64m2_t& y, vfloat64m2_t& ef, size_t vl)
+static inline void my_log_table_values_f64m2(vuint64m2_t index,
+    vfloat64m2_t& r, vfloat64m2_t& logR, size_t vl)
 {
-    vint64m2_t e;
-    my_log1p_argument_reduction_f64m2(x, y, e, ef, vl);
-}
-
-static inline void my_log_table_values_f64m2(vfloat64m2_t y, vfloat64m2_t& logR, vfloat64m2_t& r, size_t vl)
-{
-    constexpr size_t k = 8;
-    constexpr double u = 0x1.7e5035f940d7fp0, v = 0x1.17e5035f9409bp-7;
-    constexpr size_t tshift = 52 - k;
-
-    vuint64m2_t index = __riscv_vreinterpret_v_f64m2_u64m2(
-        __riscv_vfmadd_vf_f64m2(y, u, __riscv_vfmv_v_f_f64m2(v, vl), vl));
-    index = __riscv_vand_vx_u64m2(index, (uint64_t)0x000fffffffffffff, vl);
-    index = __riscv_vsrl_vx_u64m2(index, tshift, vl);
-
-    index = __riscv_vmul_vx_u64m2(index, sizeof(double), vl);
-
     logR = __riscv_vloxei64_v_f64m2(table_log_R, index, vl);
     r = __riscv_vloxei64_v_f64m2(table_R, index, vl);
 }
 
-static inline void my_log_second_reduction_f64m2(vfloat64m2_t y, vfloat64m2_t& z,
-    vfloat64m2_t& zh, vfloat64m2_t& zl, vfloat64m2_t& logR, size_t vl)
+static inline void my_log_second_reduction_f64m2(vfloat64m2_t y, vfloat64m2_t r,
+    vfloat64m2_t& z, vfloat64m2_t& zh, vfloat64m2_t& zl, size_t vl)
 {
-    vfloat64m2_t r;
-    my_log_table_values_f64m2(y, logR, r, vl);
-
     zh = __riscv_vfmul_vv_f64m2(y, r, vl);
     zl = __riscv_vfmsub_vv_f64m2(y, r, zh, vl);
     zh = __riscv_vfsub_vf_f64m2(zh, (double)1.0, vl);
     z = __riscv_vfadd_vv_f64m2(zh, zl, vl);
 }
 
-static inline void my_log1p_second_reduction_f64m2(vfloat64m2_t xm1, vfloat64m2_t& y,
-    vint64m2_t e, vfloat64m2_t& z, vfloat64m2_t& zh, vfloat64m2_t& zl, vfloat64m2_t& logR, size_t vl)
+static inline void my_log1p_second_reduction_f64m2(vfloat64m2_t xm1, vfloat64m2_t r,
+    vint64m2_t e, vfloat64m2_t& z, vfloat64m2_t& zh, vfloat64m2_t& zl, size_t vl)
 {
-    vfloat64m2_t r;
-    my_log_table_values_f64m2(y, logR, r, vl);
-
     vint64m2_t pow2mei = __riscv_vadd_vx_i64m2(__riscv_vneg_v_i64m2(e, vl), (int64_t)1025, vl);
     vfloat64m2_t pow2me = __riscv_vreinterpret_v_i64m2_f64m2(__riscv_vsll_vx_i64m2(pow2mei, 52, vl));
     vfloat64m2_t c = __riscv_vfmul_vv_f64m2(pow2me, r, vl);
@@ -414,7 +362,9 @@ static inline void my_log1p_second_reduction_f64m2(vfloat64m2_t xm1, vfloat64m2_
     vfloat64m2_t tmph, tmpl, sh, sl;
     tmph = __riscv_vfmadd_vv_f64m2(xm1, c, c, vl);
     sh = __riscv_vfsub_vv_f64m2(tmph, c, vl);
-    sl = __riscv_vfsub_vv_f64m2(tmph, __riscv_vfadd_vv_f64m2(sh, c, vl), vl);
+    sl = __riscv_vfadd_vv_f64m2(sh, c, vl);
+    sl = __riscv_vfsub_vv_f64m2(__riscv_vfsub_vv_f64m2(tmph, sl, vl),
+        __riscv_vfadd_vv_f64m2(c, __riscv_vfsub_vv_f64m2(sh, sl, vl), vl), vl);
     tmpl = __riscv_vfmsub_vv_f64m2(xm1, c, sh, vl);
     zh = __riscv_vfsub_vf_f64m2(tmph, (double)4.0, vl);
     zl = __riscv_vfsub_vv_f64m2(tmph, __riscv_vfadd_vf_f64m2(zh, (double)4.0, vl), vl);
@@ -506,6 +456,33 @@ static inline void my_log1p_process_linear_f64m2(const vfloat64m2_t& xm1, vfloat
     xm1c = __riscv_vfmerge_vfm_f64m2(xm1, (double)0.0, linearMask, vl);
 }
 
+static inline void my_log1p_reconstruction_h_f64m2(vfloat64m2_t e, vfloat64m2_t zh,
+    vfloat64m2_t zl, vfloat64m2_t p, vfloat64m2_t logR, vfloat64m2_t& res, size_t vl)
+{
+    constexpr double factor = 0x1p500, invfactor = 0x1p-500;
+    constexpr double log2h = 0x1.62e42fefa39efp-1, log2l = 0x1.abc9e3b39803fp-56*factor;
+
+    vfloat64m2_t rh, rl, tmp, tmph, tmpl, resl;
+
+    zl = __riscv_vfmul_vf_f64m2(zl, factor, vl);
+    tmp = __riscv_vfmadd_vv_f64m2(p, zl, zl, vl);
+    tmpl = __riscv_vfmsub_vv_f64m2(p, zl, __riscv_vfsub_vv_f64m2(tmp, zl, vl), vl);
+    p = __riscv_vfmul_vf_f64m2(p, factor, vl);
+    tmph = __riscv_vfmadd_vv_f64m2(p, zh, tmp, vl);
+    tmpl = __riscv_vfadd_vv_f64m2(tmpl, __riscv_vfmsub_vv_f64m2(
+        p, zh, __riscv_vfsub_vv_f64m2(tmph, tmp, vl), vl), vl);
+    tmph = __riscv_vfmadd_vf_f64m2(e, log2l, tmph, vl);
+    res = __riscv_vfsub_vv_f64m2(zh, logR, vl);
+    tmpl = __riscv_vfadd_vv_f64m2(tmpl, __riscv_vfmsub_vf_f64m2(
+        __riscv_vfsub_vv_f64m2(zh, res, vl), factor, __riscv_vfmul_vf_f64m2(logR, factor, vl), vl), vl);
+    rh = __riscv_vfmadd_vf_f64m2(e, log2h, res, vl);
+    rl = __riscv_vfadd_vv_f64m2(res, __riscv_vfmsub_vf_f64m2(e, log2h, rh, vl), vl);
+    rl = __riscv_vfmadd_vf_f64m2(rl, factor, tmpl, vl);
+    vfloat64m2_t tmp1h = __riscv_vfmadd_vf_f64m2(tmph, invfactor, rh, vl);
+    vfloat64m2_t tmp1l = __riscv_vfmadd_vf_f64m2(tmph, invfactor, __riscv_vfsub_vv_f64m2(rh, tmp1h, vl), vl);
+    res = __riscv_vfmadd_vf_f64m2(__riscv_vfmadd_vf_f64m2(tmp1l, factor, rl, vl), invfactor, tmp1h, vl);
+}
+
 static inline void my_log1p_set_fe_underflow_f64m2(vfloat64m2_t& res, size_t vl)
 {
     res = __riscv_vfmadd_vf_f64m2(res, (double)0x1p-60, res, vl);
@@ -572,85 +549,46 @@ static inline void log_check_special_cases_f64m4(vfloat64m4_t& x, vfloat64m4_t& 
     x = __riscv_vfmerge_vfm_f64m4(x, defaultArgValue, specialMask, vl);
 }
 
-static inline void decompose_number_f64m4(vfloat64m4_t x, vfloat64m4_t& m, vint64m4_t& e, size_t vl)
+static inline void my_log_argument_reduction_f64m4(vfloat64m4_t x, vfloat64m4_t& y,
+    vint64m4_t& e, vfloat64m4_t& ef, vuint64m4_t& index, size_t vl)
 {
-    vuint64m4_t resu = __riscv_vreinterpret_v_f64m4_u64m4(x);
-    resu = __riscv_vand_vx_u64m4(resu, (uint64_t)0x7ff0000000000000, vl);
-    resu = __riscv_vsrl_vx_u64m4(resu, (uint64_t)52, vl);
-    e = __riscv_vreinterpret_v_u64m4_i64m4(resu);
-    e = __riscv_vsub_vx_i64m4(e, (int64_t)1023, vl);
+    constexpr uint64_t magic_const_1 = 0x3fe5560000000000;
+    constexpr size_t tshift = 52 - 8 - 3;
 
     vuint64m4_t xi = __riscv_vreinterpret_v_f64m4_u64m4(x);
-    xi = __riscv_vand_vx_u64m4(xi, (uint64_t)0x000fffffffffffff, vl);
-    xi = __riscv_vor_vx_u64m4(xi, (uint64_t)0x3ff0000000000000, vl);
-    m = __riscv_vreinterpret_v_u64m4_f64m4(xi);
-}
+    vbool16_t msubn = __riscv_vmsltu_vx_u64m4_b16(xi, 0x0010000000000000, vl);
+    x = __riscv_vfmul_vf_f64m4_mu(msubn, x, x, (double)0x1p53, vl);
+    xi = __riscv_vreinterpret_v_f64m4_u64m4(x);
 
-static inline void my_log1p_argument_reduction_f64m4(vfloat64m4_t x, vfloat64m4_t& y,
-vint64m4_t& e, vfloat64m4_t& ef, size_t vl) {
-    constexpr double ap1 = 0x1.556p0;
+    vuint64m4_t magic_number = __riscv_vsub_vx_u64m4(xi, magic_const_1, vl);
+    e = __riscv_vsra_vx_i64m4(__riscv_vreinterpret_v_u64m4_i64m4(magic_number), (size_t)52, vl);
+    e = __riscv_vsub_vx_i64m4_mu(msubn, e, e, (int64_t)53, vl);
+    xi = __riscv_vsub_vv_u64m4(xi, __riscv_vand_vx_u64m4(magic_number, (uint64_t)0xfff0000000000000, vl), vl);
+    y = __riscv_vreinterpret_v_u64m4_f64m4(xi);
 
-    vint64m4_t et;
-    vfloat64m4_t yt;
-    decompose_number_f64m4(x, y, e, vl);
-
-    vbool16_t subnormalMask = __riscv_vmflt_vf_f64m4_b16(x, (double)0x1p-1022, vl);
-    yt = __riscv_vfsub_vf_f64m4(y, (double)1.0, vl);
-    decompose_number_f64m4(yt, yt, et, vl);
-    et = __riscv_vadd_vv_i64m4(__riscv_vadd_vx_i64m4(e, (int64_t)1, vl), et, vl);
-    y = __riscv_vmerge_vvm_f64m4(y, yt, subnormalMask, vl);
-    e = __riscv_vmerge_vvm_i64m4(e, et, subnormalMask, vl);
-
-    vbool16_t mask = __riscv_vmfge_vf_f64m4_b16(y, ap1, vl);
-    yt = __riscv_vfmul_vf_f64m4(y, (double)0.5, vl);
-    et = __riscv_vadd_vx_i64m4(e, (int64_t)1, vl);
-    y = __riscv_vmerge_vvm_f64m4(y, yt, mask, vl);
-    e = __riscv_vmerge_vvm_i64m4(e, et, mask, vl);
-
+    index = __riscv_vsrl_vx_u64m4(__riscv_vand_vx_u64m4(magic_number, (uint64_t)0x000ff00000000000, vl), tshift, vl);
     ef = __riscv_vfcvt_f_x_v_f64m4(e, vl);
 }
 
-static inline void my_log_argument_reduction_f64m4(vfloat64m4_t x, vfloat64m4_t& y, vfloat64m4_t& ef, size_t vl)
+static inline void my_log_table_values_f64m4(vuint64m4_t index,
+    vfloat64m4_t& r, vfloat64m4_t& logR, size_t vl)
 {
-    vint64m4_t e;
-    my_log1p_argument_reduction_f64m4(x, y, e, ef, vl);
-}
-
-static inline void my_log_table_values_f64m4(vfloat64m4_t y, vfloat64m4_t& logR, vfloat64m4_t& r, size_t vl)
-{
-    constexpr size_t k = 8;
-    constexpr double u = 0x1.7e5035f940d7fp0, v = 0x1.17e5035f9409bp-7;
-    constexpr size_t tshift = 52 - k;
-
-    vuint64m4_t index = __riscv_vreinterpret_v_f64m4_u64m4(
-        __riscv_vfmadd_vf_f64m4(y, u, __riscv_vfmv_v_f_f64m4(v, vl), vl));
-    index = __riscv_vand_vx_u64m4(index, (uint64_t)0x000fffffffffffff, vl);
-    index = __riscv_vsrl_vx_u64m4(index, tshift, vl);
-
-    index = __riscv_vmul_vx_u64m4(index, sizeof(double), vl);
-
     logR = __riscv_vloxei64_v_f64m4(table_log_R, index, vl);
     r = __riscv_vloxei64_v_f64m4(table_R, index, vl);
 }
 
-static inline void my_log_second_reduction_f64m4(vfloat64m4_t y, vfloat64m4_t& z,
-    vfloat64m4_t& zh, vfloat64m4_t& zl, vfloat64m4_t& logR, size_t vl) {
-
-    vfloat64m4_t r;
-    my_log_table_values_f64m4(y, logR, r, vl);
-
+static inline void my_log_second_reduction_f64m4(vfloat64m4_t y, vfloat64m4_t r,
+    vfloat64m4_t& z, vfloat64m4_t& zh, vfloat64m4_t& zl, size_t vl)
+{
     zh = __riscv_vfmul_vv_f64m4(y, r, vl);
     zl = __riscv_vfmsub_vv_f64m4(y, r, zh, vl);
     zh = __riscv_vfsub_vf_f64m4(zh, (double)1.0, vl);
     z = __riscv_vfadd_vv_f64m4(zh, zl, vl);
 }
 
-static inline void my_log1p_second_reduction_f64m4(vfloat64m4_t xm1, vfloat64m4_t& y,
-    vint64m4_t e, vfloat64m4_t& z, vfloat64m4_t& zh, vfloat64m4_t& zl, vfloat64m4_t& logR, size_t vl)
+static inline void my_log1p_second_reduction_f64m4(vfloat64m4_t xm1, vfloat64m4_t r,
+    vint64m4_t e, vfloat64m4_t& z, vfloat64m4_t& zh, vfloat64m4_t& zl, size_t vl)
 {
-    vfloat64m4_t r;
-    my_log_table_values_f64m4(y, logR, r, vl);
-
     vint64m4_t pow2mei = __riscv_vadd_vx_i64m4(__riscv_vneg_v_i64m4(e, vl), (int64_t)1025, vl);
     vfloat64m4_t pow2me = __riscv_vreinterpret_v_i64m4_f64m4(__riscv_vsll_vx_i64m4(pow2mei, 52, vl));
     vfloat64m4_t c = __riscv_vfmul_vv_f64m4(pow2me, r, vl);
@@ -658,7 +596,9 @@ static inline void my_log1p_second_reduction_f64m4(vfloat64m4_t xm1, vfloat64m4_
     vfloat64m4_t tmph, tmpl, sh, sl;
     tmph = __riscv_vfmadd_vv_f64m4(xm1, c, c, vl);
     sh = __riscv_vfsub_vv_f64m4(tmph, c, vl);
-    sl = __riscv_vfsub_vv_f64m4(tmph, __riscv_vfadd_vv_f64m4(sh, c, vl), vl);
+    sl = __riscv_vfadd_vv_f64m4(sh, c, vl);
+    sl = __riscv_vfsub_vv_f64m4(__riscv_vfsub_vv_f64m4(tmph, sl, vl),
+        __riscv_vfadd_vv_f64m4(c, __riscv_vfsub_vv_f64m4(sh, sl, vl), vl), vl);
     tmpl = __riscv_vfmsub_vv_f64m4(xm1, c, sh, vl);
     zh = __riscv_vfsub_vf_f64m4(tmph, (double)4.0, vl);
     zl = __riscv_vfsub_vv_f64m4(tmph, __riscv_vfadd_vf_f64m4(zh, (double)4.0, vl), vl);
@@ -693,7 +633,6 @@ static inline void my_log_approximation_f64m4(vfloat64m4_t z, vfloat64m4_t& res,
 static inline void my_log_reconstruction_h_f64m4(vfloat64m4_t e, vfloat64m4_t zh,
     vfloat64m4_t zl, vfloat64m4_t p, vfloat64m4_t logR, vfloat64m4_t& res, size_t vl)
 {
-
     constexpr double log2h = 0x1.62e42fefa39efp-1, log2l = 0x1.abc9e3b39803fp-56;
 
     vfloat64m4_t rh, rl, tmp, resl;
@@ -711,7 +650,6 @@ static inline void my_log_reconstruction_h_f64m4(vfloat64m4_t e, vfloat64m4_t zh
 static inline void my_log_reconstruction_hl_f64m4(vfloat64m4_t e, vfloat64m4_t zh,
     vfloat64m4_t zl, vfloat64m4_t p, vfloat64m4_t logR, vfloat64m4_t& res, vfloat64m4_t& resl, size_t vl)
 {
-
     constexpr double log2h = 0x1.62e42fefa39efp-1, log2l = 0x1.abc9e3b39803fp-56;
 
     vfloat64m4_t rh, rl, tmp;
@@ -743,6 +681,33 @@ static inline void my_log2_reconstruction_f64m4(vfloat64m4_t e, vfloat64m4_t zh,
     sl = __riscv_vfsub_vv_f64m4(rh, __riscv_vfadd_vv_f64m4(sh, e, vl), vl);
     rl = __riscv_vfmsub_vf_f64m4(tmph, invLog2h, sh, vl);
     res = __riscv_vfadd_vv_f64m4(rh, __riscv_vfadd_vv_f64m4(__riscv_vfsub_vv_f64m4(rl, sl, vl), tmp, vl), vl);
+}
+
+static inline void my_log1p_reconstruction_h_f64m4(vfloat64m4_t e, vfloat64m4_t zh,
+    vfloat64m4_t zl, vfloat64m4_t p, vfloat64m4_t logR, vfloat64m4_t& res, size_t vl)
+{
+    constexpr double factor = 0x1p500, invfactor = 0x1p-500;
+    constexpr double log2h = 0x1.62e42fefa39efp-1, log2l = 0x1.abc9e3b39803fp-56*factor;
+
+    vfloat64m4_t rh, rl, tmp, tmph, tmpl, resl;
+
+    zl = __riscv_vfmul_vf_f64m4(zl, factor, vl);
+    tmp = __riscv_vfmadd_vv_f64m4(p, zl, zl, vl);
+    tmpl = __riscv_vfmsub_vv_f64m4(p, zl, __riscv_vfsub_vv_f64m4(tmp, zl, vl), vl);
+    p = __riscv_vfmul_vf_f64m4(p, factor, vl);
+    tmph = __riscv_vfmadd_vv_f64m4(p, zh, tmp, vl);
+    tmpl = __riscv_vfadd_vv_f64m4(tmpl, __riscv_vfmsub_vv_f64m4(
+        p, zh, __riscv_vfsub_vv_f64m4(tmph, tmp, vl), vl), vl);
+    tmph = __riscv_vfmadd_vf_f64m4(e, log2l, tmph, vl);
+    res = __riscv_vfsub_vv_f64m4(zh, logR, vl);
+    tmpl = __riscv_vfadd_vv_f64m4(tmpl, __riscv_vfmsub_vf_f64m4(
+        __riscv_vfsub_vv_f64m4(zh, res, vl), factor, __riscv_vfmul_vf_f64m4(logR, factor, vl), vl), vl);
+    rh = __riscv_vfmadd_vf_f64m4(e, log2h, res, vl);
+    rl = __riscv_vfadd_vv_f64m4(res, __riscv_vfmsub_vf_f64m4(e, log2h, rh, vl), vl);
+    rl = __riscv_vfmadd_vf_f64m4(rl, factor, tmpl, vl);
+    vfloat64m4_t tmp1h = __riscv_vfmadd_vf_f64m4(tmph, invfactor, rh, vl);
+    vfloat64m4_t tmp1l = __riscv_vfmadd_vf_f64m4(tmph, invfactor, __riscv_vfsub_vv_f64m4(rh, tmp1h, vl), vl);
+    res = __riscv_vfmadd_vf_f64m4(__riscv_vfmadd_vf_f64m4(tmp1l, factor, rl, vl), invfactor, tmp1h, vl);
 }
 
 static inline void my_log1p_process_linear_f64m4(const vfloat64m4_t& xm1, vfloat64m4_t& xm1c,

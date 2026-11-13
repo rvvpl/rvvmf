@@ -1,10 +1,10 @@
 /* 
  *========================================================
- * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Copyright (c) The Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
  * 
- * Copyright 2026 The RVVMF Authors (Vladislav Polozov,
- * Elena Panova)
+ * Copyright 2025-2026 The RVVMF Authors (Elena Panova,
+ * Vladislav Polozov)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this 
@@ -13,11 +13,11 @@
 */
 
 static _Float16 table_half_log_R[16] = {
-0x1.cp+6f16, 0x1.8bp+6f16, 0x1.49p+6f16, 0x1.e8cp+5f16, 0x1.c9p+5f16, 0x1.fb4p+4f16, 0x1.254p+4f16, 0x1.254p+4f16, 0x0p+0f16, -0x1.4ecp+3f16, -0x1.698p+4f16, -0x1.fap+4f16, -0x1.4a4p+5f16, -0x1.ccp+5f16, -0x1.ccp+5f16, -0x1.1ap+6f16
+0x1.8bcp+6f16, 0x1.5dp+6f16, 0x1.318p+6f16, 0x1.07p+6f16, 0x1.bdcp+5f16, 0x1.6fp+5f16, 0x1.244p+5f16, 0x1.b78p+4f16, 0x1.29p+4f16, 0x1.494p+3f16, 0x0p+0f16, -0x1.788p+3f16, -0x1.a94p+4f16, -0x1.448p+5f16, -0x1.af8p+5f16, -0x1.0a4p+6f16
 };
 static _Float16 table_half_log_Rl[16] = {
--0x1.8p-4f16, -0x1.bp-4f16, 0x1.ap-4f16, 0x1.4p-6f16, -0x1p-4f16, 0x1.8p-5f16, -0x1.4p-5f16, -0x1.4p-5f16, 0x0p+0f16, 0x1.8p-6f16, 0x1.ep-4f16, -0x1.dp-4f16, -0x1.2p-4f16, -0x1p-7f16, -0x1p-7f16, 0x1.48p-3f16
+-0x1.268p+2f16, 0x1.bdcp+2f16, 0x1.c74p+0f16, 0x1.b84p+2f16, 0x1.1acp-1f16, 0x1.a5p+0f16, -0x1.cfp+1f16, 0x1.904p-1f16, -0x1.f3p-2f16, 0x1.598p-2f16, 0x0p+0f16, -0x1.658p-3f16, -0x1.6d4p+0f16, 0x1.d48p+1f16, 0x1.76cp+1f16, -0x1.05p+2f16
 };
 static _Float16 table_half_R[16] = {
-0x1.8c8p+8f16, 0x1.788p+8f16, 0x1.61p+8f16, 0x1.45p+8f16, 0x1.4p+8f16, 0x1.21cp+8f16, 0x1.13p+8f16, 0x1.13p+8f16, 0x1p+8f16, 0x1.eb8p+7f16, 0x1.d4cp+7f16, 0x1.c48p+7f16, 0x1.b3cp+7f16, 0x1.99p+7f16, 0x1.99p+7f16, 0x1.84cp+7f16
+0x1.78cp+8f16, 0x1.68p+8f16, 0x1.59p+8f16, 0x1.4bp+8f16, 0x1.3e4p+8f16, 0x1.324p+8f16, 0x1.274p+8f16, 0x1.1dp+8f16, 0x1.134p+8f16, 0x1.0a8p+8f16, 0x1p+8f16, 0x1.e9p+7f16, 0x1.cd8p+7f16, 0x1.b5p+7f16, 0x1.9ecp+7f16, 0x1.8acp+7f16
 };
