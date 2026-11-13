@@ -141,4 +141,10 @@
     __riscv_vreinterpret_v_u##elen##m##lmul##_f##elen##m##lmul(__riscv_vand_vx_u##elen##m##lmul( \
         __riscv_vreinterpret_v_f##elen##m##lmul##_u##elen##m##lmul(x), mask, vl))
 
+
+/* utils */
+#define RVVMF_EXP_ABS(elen, lmul, x, mask, vl) \
+    __riscv_vreinterpret_v_u##elen##m##lmul##_f##elen##m##lmul(__riscv_vand_vx_u##elen##m##lmul( \
+        __riscv_vreinterpret_v_f##elen##m##lmul##_u##elen##m##lmul(x), mask, vl))
+
 #endif
