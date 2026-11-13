@@ -1,9 +1,9 @@
 /*
  *========================================================
- * Copyright (c) The Lobachevsky State University of
+ * Copyright (c) RVVPL and Lobachevsky State University of
  * Nizhny Novgorod and its affiliates. All rights reserved.
  *
- * Copyright 2026 The RVVPL Authors (Dmitrii Suvorov,
+ * Copyright 2026 The RVVMF Authors (Dmitrii Suvorov,
  * Valentin Volokitin, Elena Panova)
  *
  * Distributed under the BSD 4-Clause License
