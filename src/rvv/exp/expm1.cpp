@@ -1,9 +1,9 @@
 /*
  *========================================================
- * Copyright (c) RVVPL and Lobachevsky State University of
+ * Copyright (c) The Lobachevsky State University of
  * Nizhny Novgorod and its affiliates. All rights reserved.
  *
- * Copyright 2025-2026 The RVVMF Authors (Elena Panova)
+ * Copyright 2025-2026 The RVVPL Authors (Elena Panova)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this
@@ -54,14 +54,14 @@ vfloat64m1_t __riscv_vexpm1_f64m1(vfloat64m1_t x, size_t avl)
     check_special_cases_f64m1(x, special, specialMask, EXP_EXPM1_OVERFLOW_THRESHOLD_F64,
         EXPM1_UNDERFLOW_THRESHOLD_F64, EXPM1_UNDERFLOW_VALUE_F64, false, vl);
 
-    vfloat64m1_t xc, res, yh, th, tl, pm1h, pm1l;
+    vfloat64m1_t xc, res, yh, yl, th, tl, pm1h, pm1l;
     vuint64m1_t ei, fi;
     vbool64_t linearMask;
 
     process_linear_f64m1(x, xc, linearMask, vl);
-    do_exp_argument_reduction_h_f64m1(xc, yh, ei, fi, vl);
+    do_exp_argument_reduction_hl_f64m1(xc, yh, yl, ei, fi, vl);
     get_table_values_hl_f64m1(fi, th, tl, vl);
-    calculate_expm1_polynom_hl12_f64m1(yh, pm1h, pm1l, vl);
+    calculate_expm1_polynom_hl_f64m1(yh, yl, pm1h, pm1l, vl);
     reconstruct_expm1_f64m1(th, tl, pm1h, pm1l, ei, res, vl);
     res = __riscv_vmerge_vvm_f64m1(res, x, linearMask, vl);
 
@@ -82,14 +82,14 @@ vfloat64m2_t __riscv_vexpm1_f64m2(vfloat64m2_t x, size_t avl)
     check_special_cases_f64m2(x, special, specialMask, EXP_EXPM1_OVERFLOW_THRESHOLD_F64,
         EXPM1_UNDERFLOW_THRESHOLD_F64, EXPM1_UNDERFLOW_VALUE_F64, false, vl);
 
-    vfloat64m2_t xc, res, yh, th, tl, pm1h, pm1l;
+    vfloat64m2_t xc, res, yh, yl, th, tl, pm1h, pm1l;
     vuint64m2_t ei, fi;
     vbool32_t linearMask;
 
     process_linear_f64m2(x, xc, linearMask, vl);
-    do_exp_argument_reduction_h_f64m2(xc, yh, ei, fi, vl);
+    do_exp_argument_reduction_hl_f64m2(xc, yh, yl, ei, fi, vl);
     get_table_values_hl_f64m2(fi, th, tl, vl);
-    calculate_expm1_polynom_hl12_f64m2(yh, pm1h, pm1l, vl);
+    calculate_expm1_polynom_hl_f64m2(yh, yl, pm1h, pm1l, vl);
     reconstruct_expm1_f64m2(th, tl, pm1h, pm1l, ei, res, vl);
     res = __riscv_vmerge_vvm_f64m2(res, x, linearMask, vl);
 
@@ -110,14 +110,14 @@ vfloat64m4_t __riscv_vexpm1_f64m4(vfloat64m4_t x, size_t avl)
     check_special_cases_f64m4(x, special, specialMask, EXP_EXPM1_OVERFLOW_THRESHOLD_F64,
         EXPM1_UNDERFLOW_THRESHOLD_F64, EXPM1_UNDERFLOW_VALUE_F64, false, vl);
 
-    vfloat64m4_t xc, res, yh, th, tl, pm1h, pm1l;
+    vfloat64m4_t xc, res, yh, yl, th, tl, pm1h, pm1l;
     vuint64m4_t ei, fi;
     vbool16_t linearMask;
 
     process_linear_f64m4(x, xc, linearMask, vl);
-    do_exp_argument_reduction_h_f64m4(xc, yh, ei, fi, vl);
+    do_exp_argument_reduction_hl_f64m4(xc, yh, yl, ei, fi, vl);
     get_table_values_hl_f64m4(fi, th, tl, vl);
-    calculate_expm1_polynom_hl12_f64m4(yh, pm1h, pm1l, vl);
+    calculate_expm1_polynom_hl_f64m4(yh, yl, pm1h, pm1l, vl);
     reconstruct_expm1_f64m4(th, tl, pm1h, pm1l, ei, res, vl);
     res = __riscv_vmerge_vvm_f64m4(res, x, linearMask, vl);
 
