@@ -1,0 +1,48 @@
+/* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2026 The RVVMF Authors (Egor Korotin, 
+ * Vladislav Polozov)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+
+static const float LOOK_UP_TABLE_HIGH_F32[16] = {
+    0x1p0f, 0x1.0b5586p0f, 0x1.172b84p0f, 0x1.2387a6p0f,
+    0x1.306fep0f, 0x1.3dea64p0f, 0x1.4bfdaep0f, 0x1.5ab07ep0f,
+    0x1.6a09e6p0f, 0x1.7a1148p0f, 0x1.8ace54p0f, 0x1.9c4918p0f,
+    0x1.ae89fap0f, 0x1.c199bep0f, 0x1.d5818ep0f, 0x1.ea4afap0f
+};
+static const float LOOK_UP_TABLE_LOW_F32[16] = {
+    0.0f, 0x1.9f3122p-25f, -0x1.c15742p-27f, 0x1.ceac48p-25f,
+    0x1.4636e2p-25f, 0x1.824684p-25f, -0x1.593abcp-25f, -0x1.5bd5ecp-27f,
+    0x1.9fcef4p-26f, -0x1.829fdp-25f, 0x1.15506ep-27f, 0x1.51f848p-27f,
+    -0x1.a94b14p-26f, -0x1.3d56b2p-27f, -0x1.822dbcp-27f, 0x1.52486cp-27f
+};
+
+static float table_float_log2_R[64] = {
+0x1.3460a8p-1f, 0x1.2881e4p-1f, 0x1.1cd64p-1f, 0x1.11682cp-1f, 0x1.060d4p-1f, 0x1.f791b4p-2f, 0x1.dfc018p-2f, 0x1.ca8ccep-2f, 0x1.b5067p-2f, 0x1.9ff56ep-2f, 0x1.8b22bp-2f, 0x1.776024p-2f, 0x1.629226p-2f, 0x1.4f3f7ep-2f, 0x1.3b6ec2p-2f, 0x1.27855ap-2f, 0x1.14e01cp-2f, 0x1.01cb58p-2f, 0x1.dee77ap-3f, 0x1.b91836p-3f, 0x1.9566eap-3f, 0x1.70ebf6p-3f, 0x1.4f5fd4p-3f, 0x1.2c9f4ap-3f, 0x1.0ce0bcp-3f, 0x1.cd02f8p-4f, 0x1.86feaap-4f, 0x1.4678e8p-4f, 0x1.022ed4p-4f, 0x1.80cf1ep-5f, 0x1.04f3a8p-5f, 0x1.01205p-6f, 0x0p+0f, -0x1.ed1c34p-7f, -0x1.f18192p-6f, -0x1.731fc2p-5f, -0x1.ec3738p-5f, -0x1.322e64p-4f, -0x1.6d926cp-4f, -0x1.a9277cp-4f, -0x1.e3096p-4f, -0x1.0e9578p-3f, -0x1.2b229cp-3f, -0x1.460786p-3f, -0x1.634428p-3f, -0x1.7ee328p-3f, -0x1.9af6d4p-3f, -0x1.b64e8cp-3f, -0x1.d13eb4p-3f, -0x1.ec253ep-3f, -0x1.02fcc6p-2f, -0x1.10664p-2f, -0x1.1d723ep-2f, -0x1.29b0c4p-2f, -0x1.37067p-2f, -0x1.43f876p-2f, -0x1.509f54p-2f, -0x1.5d08bp-2f, -0x1.69881ap-2f, -0x1.75b4bep-2f, -0x1.81ec1ep-2f, -0x1.8dd42ep-2f, -0x1.9965dap-2f, -0x1.a5d6f4p-2f
+};
+static float table2_float_R[64] = {
+0x1.84a47cp+0f, 0x1.7e726ep+0f, 0x1.7873b6p+0f, 0x1.72abfp+0f, 0x1.6d045ap+0f, 0x1.67fa7cp+0f, 0x1.623898p+0f, 0x1.5d2c92p+0f, 0x1.581f9ap+0f, 0x1.534048p+0f, 0x1.4e80b8p+0f, 0x1.4a0ef6p+0f, 0x1.457162p+0f, 0x1.4136c4p+0f, 0x1.3cef2ap+0f, 0x1.38b0fp+0f, 0x1.34c4fap+0f, 0x1.30ce98p+0f, 0x1.2d0bc4p+0f, 0x1.2937d6p+0f, 0x1.25a636p+0f, 0x1.220bc2p+0f, 0x1.1ec576p+0f, 0x1.1b6b0ap+0f, 0x1.1863bp+0f, 0x1.14c582p+0f, 0x1.1182f2p+0f, 0x1.0e8a94p+0f, 0x1.0b6edp+0f, 0x1.0878f4p+0f, 0x1.05b71ep+0f, 0x1.02ccccp+0f, 0x1p+0f, 0x1.faafeap-1f, 0x1.f55612p-1f, 0x1.f02c0ep-1f, 0x1.eb1d44p-1f, 0x1.e625ap-1f, 0x1.e14914p-1f, 0x1.dc7506p-1f, 0x1.d7d01cp-1f, 0x1.d331cp-1f, 0x1.ceb394p-1f, 0x1.ca8248p-1f, 0x1.c5fe86p-1f, 0x1.c1c518p-1f, 0x1.bd8422p-1f, 0x1.b9698cp-1f, 0x1.b567f8p-1f, 0x1.b1711cp-1f, 0x1.adab52p-1f, 0x1.a9c93cp-1f, 0x1.a60ad6p-1f, 0x1.a28f1p-1f, 0x1.9ecc3ep-1f, 0x1.9b2dcep-1f, 0x1.97ac3p-1f, 0x1.94430ep-1f, 0x1.90db3ep-1f, 0x1.8d910cp-1f, 0x1.8a4ae6p-1f, 0x1.8720a6p-1f, 0x1.841398p-1f, 0x1.80d26ap-1f
+};
+
+const int32_t SIGN_MASK_F32 = 0x80000000;
+const int32_t ABS_MASK_F32  = 0x7fffffff;
+const uint32_t EXP_MASK_F32 = 0x7f800000;
+const uint32_t ONE_MASK_F32 = 0x3f800000;
+const uint32_t NAN_MASK_F32 = 0x7fc00000;
+const size_t BITS_F32 = 31;
+const int32_t INT_MAX_P1_I32 = 0x4f000000;
+const uint32_t EXPADD_F32 = 0x3f000000;
+const uint32_t OF_TRESHOLD_U32 = 0x43000002;
+const uint32_t UF_TRESHOLD_U32 = 0xc3160000;
+const uint32_t OF_EXP_TRESHOLD_F32 = 0x83000000;
+const uint32_t UF_EXP_TRESHOLD_F32 = 0x72000000;
+const float UF_CORRECTION_F32 = 0x1p-30f;

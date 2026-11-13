@@ -1,0 +1,58 @@
+/* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2026 The RVVMF Authors (Egor Korotin, 
+ * Vladislav Polozov)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+
+static const _Float16 LOOK_UP_TABLE_HIGH_F16[8] = {
+    0x1p0f16, 0x1.174p0f16, 0x1.308p0f16, 0x1.4cp0f16,
+    0x1.6ap0f16, 0x1.8acp0f16, 0x1.ae8p0f16, 0x1.d58p0f16
+};
+
+static const _Float16 LOOK_UP_TABLE_LOW_F16[8] = {
+    0.0f16, -0x1.47cp-12f16, -0x1.02p-12f16, -0x1.298p-15f16,
+    0x1.3ccp-13f16, 0x1.ca8p-13f16, 0x1.3f4p-13f16, 0x1.8ep-16f16
+};
+
+static const _Float16 LOOK_UP_TABLE_LOW_P15_F16[8] = {
+    0.0f16, -0x1.47cp-1f16, -0x1.02p-1f16, -0x1.298p-4f16,
+    0x1.3ccp-2f16, 0x1.ca8p-2f16, 0x1.3f4p-2f16, 0x1.8ep-5f16
+}; // * 0x1p15
+
+
+static _Float16 table_half_log2_R[16] = {
+0x1.4b8p-1f16, 0x1.2b8p-1f16, 0x1.d78p-2f16, 0x1.9a8p-2f16, 0x1.488p-2f16, 0x1.73p-3f16, 0x1.4ap-3f16, 0x1.a38p-5f16, 0x0p+0f16, -0x1.558p-4f16, -0x1.f38p-4f16, -0x1.53p-3f16, -0x1.ebcp-3f16, -0x1.32cp-2f16, -0x1.5b4p-2f16, -0x1.9d8p-2f16
+};
+static _Float16 table_half_log2_Rl[16] = {
+-0x1.51p-5f16, 0x1.a38p-6f16, 0x1.cp-4f16, 0x1.1c8p-7f16, -0x1.f3p-9f16, -0x1.754p-10f16, -0x1.f3p-7f16, 0x1.dd8p-8f16, 0x0p+0f16, -0x1.d2cp-11f16, -0x1.c5cp-7f16, -0x1.af4p-6f16, 0x1.06p-7f16, 0x1.1c8p-8f16, -0x1.784p-6f16, -0x1.bbp-6f16
+}; // * 0x1p14
+static _Float16 table2_half_R[16] = {
+0x1.91p+0f16, 0x1.8p+0f16, 0x1.604p+0f16, 0x1.52p+0f16, 0x1.3fcp+0f16, 0x1.224p+0f16, 0x1.1e4p+0f16, 0x1.094p+0f16, 0x1p+0f16, 0x1.e34p-1f16, 0x1.d68p-1f16, 0x1.c88p-1f16, 0x1.b18p-1f16, 0x1.ap-1f16, 0x1.94cp-1f16, 0x1.83p-1f16
+};
+
+const int16_t SIGN_MASK_F16 = 0x8000;
+const int16_t ABS_MASK_F16  = 0x7fff;
+const uint16_t EXP_MASK_F16 = 0x7c00;
+const uint16_t ONE_MASK_F16 = 0x3c00;
+const uint16_t NAN_MASK_F16 = 0x7e00;
+const size_t BITS_F16 = 15;
+const int16_t INT_MAX_P1_I16 = 0x7800;
+const uint16_t EXPADD_F16 = 0x3800;
+const uint16_t OF_TRESHOLD_U16 = 0x4c02;
+const uint16_t UF_TRESHOLD_U16 = 0xce40;
+const uint16_t OF_TRESHOLD_P10_U16 = 0x7402;
+const uint16_t UF_TRESHOLD_P10_U16 = 0xf640;
+const uint16_t OF_EXP_TRESHOLD_F16 = 0x8c00;
+const uint16_t UF_EXP_TRESHOLD_F16 = 0x4400;
+const uint16_t OF_EXP_TRESHOLD_P10_F16 = 0xb400;
+const uint16_t UF_EXP_TRESHOLD_P10_F16 = 0x6c00;
+
