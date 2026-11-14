@@ -1,0 +1,83 @@
+* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2025-2026 The RVVMF Authors 
+ *                     (Valentin Volokitin)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+static double tanhyf64_hi [21] = {
+    0.0,
+    0x1.85efab514f394p-1,
+    0x1.ed9505e1bc3d4p-1,
+    0x1.fd77d111a0bp-1,
+    0x1.ffa81708a0b42p-1,
+    0x1.fff419668df11p-1,
+    0x1.fffe63abe253cp-1,
+    0x1.ffffc832750f2p-1,
+    0x1.fffff872a91f8p-1,
+    0x1.fffffefa59d78p-1,
+    0x1.ffffffdc96f35p-1,
+    0x1.fffffffb352ddp-1,
+    0x1.ffffffff59f7cp-1,
+    0x1.ffffffffe987bp-1,
+    0x1.fffffffffcf58p-1,
+    0x1.ffffffffff96ap-1,
+    0x1.fffffffffff1cp-1,
+    0x1.fffffffffffe1p-1,
+    0x1.ffffffffffffcp-1,
+    0x1.fffffffffffffp-1,
+    0x1p0
+};
+
+static double tanhyf64_lo [21] = {
+    0.0,
+    0x1.5618caf8a4f11p-55,
+    -0x1.661de681e0bedp-56,
+    -0x1.df50f574f4805p-57,
+    0x1.6857246c19dc6p-57,
+    0x1.a800b7186cb57p-56,
+    -0x1.122cec4a8d9aap-56,
+    -0x1.29717fa82502dp-56,
+    0x1.a43b839b4eb63p-55,
+    -0x1.df75af12fa18fp-56,
+    0x1.54a515b0b44b4p-55,
+    0x1.05799f8a2cd4dp-59,
+    0x1.c068ebadaead9p-56,
+    -0x1.53800003eb7d6p-56,
+    0x1.fc5257d898dd9p-57,
+    0x1.1f3d538340ee1p-55,
+    -0x1.193dd859009dbp-56,
+    0x1.ffe1129d56f11p-57,
+    -0x1.6d875fbbc0c4dp-56,
+    0x1.bceea52a399fap-55,
+    -0x1.39792499b1a24p-57
+};
+
+static double tanhzf64_hi [8] = {
+    0.0,
+    0x1.fd5992bc4b835p-4,
+    0x1.f597ea69a1c86p-3,
+    0x1.6ef53de8c8fbp-2,
+    0x1.d9353d7568af3p-2,
+    0x1.1bf47eabb8f95p-1,
+    0x1.45323e552f228p-1,
+    0x1.686650b8c2015p-1
+};
+
+static double tanhzf64_lo [8] = {
+    0.0,
+    -0x1.fa84a9b880414p-63,
+    -0x1.d94e51c4f71acp-60,
+    -0x1.d5e3ebcaa0633p-59,
+    0x1.944a3b887196cp-56,
+    0x1.2221cd286d06p-55,
+    0x1.39d5832bf78fbp-56,
+    0x1.9fa72eaddbf64p-57
+};
