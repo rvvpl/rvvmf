@@ -1,0 +1,58 @@
+/* 
+ *========================================================
+ * Copyright (c) RVVPL and Lobachevsky State University of 
+ * Nizhny Novgorod and its affiliates. All rights reserved.
+ * 
+ * Copyright 2025-2026 The RVVMF Authors 
+ *                     (Valentin Volokitin)
+ *
+ * Distributed under the BSD 4-Clause License
+ * (See file LICENSE in the root directory of this 
+ * source tree)
+ *========================================================
+*/
+
+static float tanhyf32_hi [20] = {
+    0.0f,
+    0x1.d9353ep-2f,
+    0x1.85efacp-1f,
+    0x1.cf6f98p-1f,
+    0x1.ed9506p-1f,
+    0x1.f92582p-1f,
+    0x1.fd77d2p-1f,
+    0x1.ff112cp-1f,
+    0x1.ffa818p-1f,
+    0x1.ffdfa8p-1f,
+    0x1.fff41ap-1f,
+    0x1.fffbap-1f,
+    0x1.fffe64p-1f,
+    0x1.ffff68p-1f,
+    0x1.ffffc8p-1f,
+    0x1.ffffecp-1f,
+    0x1.fffff8p-1f,
+    0x1.fffffep-1f,
+    0x1.fffffep-1f,
+    0x1p0f
+};
+static float tanhyf32_lo [20] = {
+    0.0f,
+    -0x1.152ea2p-27f,
+    -0x1.5d618ep-26f,
+    -0x1.e482a2p-27f,
+    -0x1.e43c2cp-29f,
+    0x1.829c7p-27f,
+    -0x1.dcbeap-26f,
+    0x1.8ea41ep-27f,
+    -0x1.eebe98p-26f,
+    -0x1.bd58dp-26f,
+    -0x1.32e41ep-26f,
+    -0x1.a07c2ep-26f,
+    -0x1.5076b2p-27f,
+    0x1.3fb26ep-27f,
+    0x1.93a878p-28f,
+    -0x1.0eb872p-26f,
+    0x1.caa47ep-27f,
+    -0x1.8e78c2p-26f,
+    0x1.f4b3aep-26f,
+    -0x1.81057p-27f
+};
