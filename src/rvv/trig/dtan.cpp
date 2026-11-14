@@ -150,7 +150,7 @@ vfloat64m1_t __riscv_vtan_f64m1(vfloat64m1_t x, size_t avl)
     vbool64_t mask_pi_4;
     vuint64m1_t quadrants;
 
-    __riscv_vred_paynehanek_f64m1(x, redx_hi, redx_lo, quadrants, mask_pi_4, vl);
+    __riscv_vreduction_pi4_f64m1(x, redx_hi, redx_lo, quadrants, mask_pi_4, vl);
 
     vbool64_t mask_div = __riscv_vmxor_mm_b64(mask_pi_4,
         __riscv_vmseq_vx_u64m1_b64(__riscv_vand_vx_u64m1(quadrants, 1, vl), 1, vl), vl);
@@ -258,7 +258,7 @@ vfloat64m2_t __riscv_vtan_f64m2(vfloat64m2_t x, size_t avl)
     vbool32_t mask_pi_4;
     vuint64m2_t quadrants;
 
-    __riscv_vred_paynehanek_f64m2(x, redx_hi, redx_lo, quadrants, mask_pi_4, vl);
+    __riscv_vreduction_pi4_f64m2(x, redx_hi, redx_lo, quadrants, mask_pi_4, vl);
 
     vbool32_t mask_div = __riscv_vmxor_mm_b32(mask_pi_4,
         __riscv_vmseq_vx_u64m2_b32(__riscv_vand_vx_u64m2(quadrants, 1, vl), 1, vl), vl);
@@ -366,7 +366,7 @@ vfloat64m4_t __riscv_vtan_f64m4(vfloat64m4_t x, size_t avl)
     vbool16_t mask_pi_4;
     vuint64m4_t quadrants;
 
-    __riscv_vred_paynehanek_f64m4(x, redx_hi, redx_lo, quadrants, mask_pi_4, vl);
+    __riscv_vreduction_pi4_f64m4(x, redx_hi, redx_lo, quadrants, mask_pi_4, vl);
 
     vbool16_t mask_div = __riscv_vmxor_mm_b16(mask_pi_4,
         __riscv_vmseq_vx_u64m4_b16(__riscv_vand_vx_u64m4(quadrants, 1, vl), 1, vl), vl);
