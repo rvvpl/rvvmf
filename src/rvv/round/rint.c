@@ -3,7 +3,8 @@
  * Copyright (c) RVVPL and Lobachevsky State University of 
  * Nizhny Novgorod and its affiliates. All rights reserved.
  * 
- * Copyright 2025 The RVVMF Authors (Valentin Volokitin)
+ * Copyright 2025-2026 The RVVMF Authors 
+ * (Valentin Volokitin)
  *
  * Distributed under the BSD 4-Clause License
  * (See file LICENSE in the root directory of this 
@@ -72,32 +73,32 @@ vfloat64m8_t __riscv_vrint_f64m8(vfloat64m8_t x, size_t avl)
     };
 }
 
-vint32m1_t __riscv_vlrint_i32m1(vfloat64m2_t x, size_t avl)
+vint32m1_t __riscv_vlrint_f64_i32m1(vfloat64m2_t x, size_t avl)
 {
     return __riscv_vfncvt_x_f_w_i32m1(x, avl);
 }
-vint32m2_t __riscv_vlrint_i32m2(vfloat64m4_t x, size_t avl)
+vint32m2_t __riscv_vlrint_f64_i32m2(vfloat64m4_t x, size_t avl)
 {
     return __riscv_vfncvt_x_f_w_i32m2(x, avl);
 }
-vint32m4_t __riscv_vlrint_i32m4(vfloat64m8_t x, size_t avl)
+vint32m4_t __riscv_vlrint_f64_i32m4(vfloat64m8_t x, size_t avl)
 {
     return __riscv_vfncvt_x_f_w_i32m4(x, avl);
 }
 
-vint64m1_t __riscv_vllrint_i64m1(vfloat64m1_t x, size_t avl)
+vint64m1_t __riscv_vllrint_f64_i64m1(vfloat64m1_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i64m1(x, avl);
 }
-vint64m2_t __riscv_vllrint_i64m2(vfloat64m2_t x, size_t avl)
+vint64m2_t __riscv_vllrint_f64_i64m2(vfloat64m2_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i64m2(x, avl);
 }
-vint64m4_t __riscv_vllrint_i64m4(vfloat64m4_t x, size_t avl)
+vint64m4_t __riscv_vllrint_f64_i64m4(vfloat64m4_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i64m4(x, avl);
 }
-vint64m8_t __riscv_vllrint_i64m8(vfloat64m8_t x, size_t avl)
+vint64m8_t __riscv_vllrint_f64_i64m8(vfloat64m8_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i64m8(x, avl);
 }
@@ -143,32 +144,32 @@ vfloat32m8_t __riscv_vrint_f32m8(vfloat32m8_t x, size_t avl)
     };
 }
 
-vint32m1_t __riscv_vlrint_i32m1(vfloat32m1_t x, size_t avl)
+vint32m1_t __riscv_vlrint_f32_i32m1(vfloat32m1_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i32m1(x, avl);
 }
-vint32m2_t __riscv_vlrint_i32m2(vfloat32m2_t x, size_t avl)
+vint32m2_t __riscv_vlrint_f32_i32m2(vfloat32m2_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i32m2(x, avl);
 }
-vint32m4_t __riscv_vlrint_i32m4(vfloat32m4_t x, size_t avl)
+vint32m4_t __riscv_vlrint_f32_i32m4(vfloat32m4_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i32m4(x, avl);
 }
-vint32m8_t __riscv_vlrint_i32m8(vfloat32m8_t x, size_t avl)
+vint32m8_t __riscv_vlrint_f32_i32m8(vfloat32m8_t x, size_t avl)
 {
     return __riscv_vfcvt_x_f_v_i32m8(x, avl);
 }
 
-vint64m2_t __riscv_vllrint_i64m2(vfloat32m1_t x, size_t avl)
+vint64m2_t __riscv_vllrint_f32_i64m2(vfloat32m1_t x, size_t avl)
 {
     return __riscv_vfwcvt_x_f_v_i64m2(x, avl);
 }
-vint64m4_t __riscv_vllrint_i64m4(vfloat32m2_t x, size_t avl)
+vint64m4_t __riscv_vllrint_f32_i64m4(vfloat32m2_t x, size_t avl)
 {
     return __riscv_vfwcvt_x_f_v_i64m4(x, avl);
 }
-vint64m8_t __riscv_vllrint_i64m8(vfloat32m4_t x, size_t avl)
+vint64m8_t __riscv_vllrint_f32_i64m8(vfloat32m4_t x, size_t avl)
 {
     return __riscv_vfwcvt_x_f_v_i64m8(x, avl);
 }
@@ -217,24 +218,24 @@ vfloat16m8_t __riscv_vrint_f16m8(vfloat16m8_t x, size_t avl)
     };
 }
 
-vint32m2_t __riscv_vlrint_i32m2(vfloat16m1_t x, size_t avl)
+vint32m2_t __riscv_vlrint_f16_i32m2(vfloat16m1_t x, size_t avl)
 {
     return __riscv_vfwcvt_x_f_v_i32m2(x, avl);
 }
-vint32m4_t __riscv_vlrint_i32m4(vfloat16m2_t x, size_t avl)
+vint32m4_t __riscv_vlrint_f16_i32m4(vfloat16m2_t x, size_t avl)
 {
     return __riscv_vfwcvt_x_f_v_i32m4(x, avl);
 }
-vint32m8_t __riscv_vlrint_i32m8(vfloat16m4_t x, size_t avl)
+vint32m8_t __riscv_vlrint_f16_i32m8(vfloat16m4_t x, size_t avl)
 {
     return __riscv_vfwcvt_x_f_v_i32m8(x, avl);
 }
 
-vint64m4_t __riscv_vllrint_i64m4(vfloat16m1_t x, size_t avl)
+vint64m4_t __riscv_vllrint_f16_i64m4(vfloat16m1_t x, size_t avl)
 {
     return __riscv_vwcvt_x_x_v_i64m4(__riscv_vfwcvt_x_f_v_i32m2(x, avl), avl);
 }
-vint64m8_t __riscv_vllrint_i64m8(vfloat16m2_t x, size_t avl)
+vint64m8_t __riscv_vllrint_f16_i64m8(vfloat16m2_t x, size_t avl)
 {
     return __riscv_vwcvt_x_x_v_i64m8(__riscv_vfwcvt_x_f_v_i32m4(x, avl), avl);
 }
